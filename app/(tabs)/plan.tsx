@@ -1,27 +1,26 @@
+import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, View } from 'react-native';
 
-import { Button } from '../src/components/Button';
-import { Field } from '../src/components/Field';
-import { HourPicker, hourLabel } from '../src/components/HourPicker';
-import { RoutineEditor } from '../src/components/RoutineEditor';
-import { Screen } from '../src/components/Screen';
-import { Text } from '../src/components/Text';
-import { deletePlan } from '../src/lib/api';
-import { shortId } from '../src/lib/id';
-import { useDismiss } from '../src/lib/nav';
-import { usePlan } from '../src/lib/store';
-import type { RoutineSlot } from '../src/lib/types';
-import { WEIGH_INS_PER_WEEK } from '../src/lib/types';
-import { radius, space, useTheme } from '../src/theme';
+import { Button } from '../../src/components/Button';
+import { Field } from '../../src/components/Field';
+import { HourPicker, hourLabel } from '../../src/components/HourPicker';
+import { RoutineEditor } from '../../src/components/RoutineEditor';
+import { Screen } from '../../src/components/Screen';
+import { Text } from '../../src/components/Text';
+import { deletePlan, ownerLinkUrl } from '../../src/lib/api';
+import { shortId } from '../../src/lib/id';
+import { usePlan } from '../../src/lib/store';
+import type { RoutineSlot } from '../../src/lib/types';
+import { WEIGH_INS_PER_WEEK } from '../../src/lib/types';
+import { radius, space, useTheme } from '../../src/theme';
 
 /** Everything set during onboarding, changeable afterwards. A goal you can't edit is a goal
  *  people abandon the app over rather than adjust. */
 export default function PlanScreen() {
   const { plan, update, clear } = usePlan();
   const router = useRouter();
-  const dismiss = useDismiss();
   const t = useTheme();
 
   const [target, setTarget] = useState(plan ? String(plan.goal.target) : '');
@@ -29,6 +28,9 @@ export default function PlanScreen() {
   const [wakeHour, setWakeHour] = useState(plan?.goal.wakeHour ?? 7);
   const [routine, setRoutine] = useState<RoutineSlot[]>(plan?.routine ?? []);
   const [witnessName, setWitnessName] = useState(plan?.witness.name ?? '');
+  const [saved, setSaved] = useState(false);
+  // Any edit after a save means there's something to save again.
+  useEffect(() => setSaved(false), [target, unit, wakeHour, routine, witnessName]);
 
   if (!plan) return null;
   const witnessChanged = witnessName.trim() !== plan.witness.name;
@@ -48,21 +50,16 @@ export default function PlanScreen() {
           }
         : {}),
     });
-    dismiss();
+    setSaved(true);
   }
 
   return (
-    <Screen>
+    <Screen edges={['top']} style={{ paddingBottom: space(16) }}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: space(4) }}>
-          <Pressable onPress={dismiss} hitSlop={12}>
-            <Text variant="label" tone="faint">
-              Cancel
-            </Text>
-          </Pressable>
-        </View>
-
-        <Text variant="display" style={{ paddingTop: space(6), paddingBottom: space(8) }}>
+        <Text variant="micro" tone="faint" style={{ paddingTop: space(6) }}>
+          PLAN
+        </Text>
+        <Text variant="display" style={{ paddingTop: space(2), paddingBottom: space(8) }}>
           Your plan
         </Text>
 
@@ -154,34 +151,28 @@ export default function PlanScreen() {
         </Section>
 
         <View style={{ gap: space(3), paddingTop: space(4) }}>
-          <Button label="Save" onPress={save} disabled={!valid} />
+          <Button label={saved ? 'Saved' : 'Save'} onPress={save} disabled={!valid || saved} />
         </View>
 
-        <Section title="YOUR COACH">
-          <Pressable
-            onPress={() => router.push('/memories')}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              borderRadius: radius.md,
-              borderWidth: 1,
-              borderColor: t.line,
-              backgroundColor: t.surface,
-              padding: space(4),
-            }}
-          >
-            <View style={{ flex: 1, gap: space(1) }}>
-              <Text variant="bodyStrong">What your coach remembers</Text>
-              <Text variant="small" tone="dim">
-                Read it, and delete anything you&rsquo;d rather it forgot
-              </Text>
-            </View>
-            <Text variant="heading" tone="faint">
-              ›
+        <Section title="CHECK-INS">
+          {plan.ownerChatId ? (
+            <Text variant="body" tone="dim">
+              Connected to Telegram. The morning ask and session check-ins arrive there.
             </Text>
-          </Pressable>
+          ) : (
+            <View style={{ gap: space(3) }}>
+              <Text variant="small" tone="dim">
+                The morning ask arrives as a message, so you can answer it without opening this app.
+              </Text>
+              <Button
+                label="Connect Telegram"
+                variant="secondary"
+                onPress={() => Linking.openURL(ownerLinkUrl(plan.id))}
+              />
+            </View>
+          )}
         </Section>
+
 
         {/* Not a reset. History is append-only — wiping a bad week is cheating with extra
             steps — but erasure has to exist, so it lives here, named for what it is. */}

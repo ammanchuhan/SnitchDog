@@ -13,7 +13,7 @@ import { Text } from './Text';
  *
  * The vote is on the *kind* of line, not the wording — "don't talk to me about streaks" is a
  * useful thing to learn, "I didn't like that sentence" isn't. */
-export function CoachNote() {
+export function CoachNote({ linkToChat = true }: { linkToChat?: boolean }) {
   const { plan, update } = usePlan();
   const router = useRouter();
   const t = useTheme();
@@ -51,11 +51,17 @@ export function CoachNote() {
       </Text>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Pressable onPress={() => router.push('/chat')} hitSlop={8}>
+        {linkToChat ? (
+          <Pressable onPress={() => router.push('/coach')} hitSlop={8}>
+            <Text variant="micro" tone="faint">
+              {votedToday ? 'NOTED · TALK TO YOUR COACH →' : 'TALK TO YOUR COACH →'}
+            </Text>
+          </Pressable>
+        ) : (
           <Text variant="micro" tone="faint">
-            {votedToday ? 'NOTED · TALK TO YOUR COACH →' : 'TALK TO YOUR COACH →'}
+            {votedToday ? 'NOTED' : 'MORE OR LESS LIKE THIS?'}
           </Text>
-        </Pressable>
+        )}
         <View style={{ flexDirection: 'row', gap: space(2) }}>
           {(['up', 'down'] as const).map((d) => {
             const chosen = votedToday === d;

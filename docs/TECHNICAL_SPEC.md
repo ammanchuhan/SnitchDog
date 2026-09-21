@@ -428,6 +428,7 @@ users.
 | 2026-09-20 (rev 2) | Training is a schedule, not a checkbox | "Did you work out?" is a question anyone can dodge. "Did you get Wednesday's session in?" is not. |
 | 2026-09-20 (rev 2) | Progress follows the seven-day average | Daily weight is mostly water. A progress bar that reacts to it is lying. |
 | 2026-09-20 (rev 2) | The first week is pro-rated | Starting on a Saturday should not mean failing before you have done anything. Found by running the app on a Sunday. |
+| 2026-09-21 | Four tabs — Today, Progress, Coach, Plan — instead of one busy home | Home stacked seven things. Today now answers one question (what do I owe today?); browsing moved to its own tabs. Native iOS tab bar, so it reads as a phone app. |
 
 ---
 

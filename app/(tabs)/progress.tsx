@@ -1,24 +1,28 @@
-import { Pressable, useWindowDimensions, View } from 'react-native';
+import { useWindowDimensions, View } from 'react-native';
 
-import { MonthCalendar } from '../src/components/MonthCalendar';
-import { Screen } from '../src/components/Screen';
-import { Text } from '../src/components/Text';
-import { WeightChart } from '../src/components/WeightChart';
-import { useDismiss } from '../src/lib/nav';
-import { usePlan } from '../src/lib/store';
+import { DayStrip } from '../../src/components/DayStrip';
+import { MonthCalendar } from '../../src/components/MonthCalendar';
+import { Screen } from '../../src/components/Screen';
+import { Text } from '../../src/components/Text';
+import { WeightChart } from '../../src/components/WeightChart';
+import { usePlan } from '../../src/lib/store';
 import {
   currentAverage,
   escalationCount,
+  previousAverage,
+  progress,
   rollingAverage,
+  sessionsThisWeek,
   shiftDate,
   toDate,
   weekHistory,
-} from '../src/lib/types';
-import { radius, space, useTheme } from '../src/theme';
+  weekStatus,
+  weighInOn,
+} from '../../src/lib/types';
+import { radius, space, useTheme } from '../../src/theme';
 
 export default function Progress() {
   const { plan } = usePlan();
-  const dismiss = useDismiss();
   const t = useTheme();
   const { width } = useWindowDimensions();
 
@@ -28,6 +32,12 @@ export default function Progress() {
   const average = currentAverage(plan);
   const fourWeeksAgo = rollingAverage(plan, shiftDate(today, -28));
   const history = weekHistory(plan, today);
+  const previous = previousAverage(plan);
+  const trend = average !== undefined && previous !== undefined ? average - previous : undefined;
+  const remaining = Math.abs((average ?? goal.start) - goal.target);
+  const todayWeighIn = weighInOn(plan, today);
+  const week = weekStatus(plan, today);
+  const sessions = sessionsThisWeek(plan, today);
 
   /** Pounds a week, measured between averages so it isn't a story about one morning. */
   const rate =
@@ -40,17 +50,62 @@ export default function Progress() {
       : undefined;
 
   return (
-    <Screen>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: space(4) }}>
-        <Pressable onPress={dismiss} hitSlop={12}>
-          <Text variant="label" tone="faint">
-            Back
+    <Screen edges={['top']} style={{ paddingBottom: space(16) }}>
+      <Text variant="micro" tone="faint" style={{ paddingTop: space(6) }}>
+        PROGRESS
+      </Text>
+      <Text variant="display" numeric style={{ paddingTop: space(2) }}>
+        Get to {goal.target} {goal.unit}
+      </Text>
+
+      {/* The headline is the seven-day average. Today's reading is a footnote, on purpose:
+          a progress bar that jumps on water weight teaches people to distrust it. */}
+      <View style={{ marginTop: space(6), marginBottom: space(8), gap: space(3) }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: space(2) }}>
+          <Text variant="hero" numeric>
+            {(average ?? goal.start).toFixed(1)}
           </Text>
-        </Pressable>
+          <Text variant="heading" tone="faint" style={{ paddingBottom: space(3) }}>
+            {goal.unit}
+          </Text>
+          {trend !== undefined && Math.abs(trend) >= 0.05 && (
+            <Text
+              variant="label"
+              numeric
+              tone={Math.sign(trend) === Math.sign(goal.target - goal.start) ? 'good' : 'dim'}
+              style={{ paddingBottom: space(4) }}
+            >
+              {trend > 0 ? '+' : ''}
+              {trend.toFixed(1)}
+            </Text>
+          )}
+        </View>
+        <Text variant="micro" tone="faint">
+          7-DAY AVERAGE{trend !== undefined ? ' · VS LAST WEEK' : ''}
+        </Text>
+        <View style={{ height: 6, borderRadius: 3, backgroundColor: t.surfaceHigh, overflow: 'hidden' }}>
+          <View style={{ width: `${Math.round(progress(plan) * 100)}%`, height: '100%', backgroundColor: t.good }} />
+        </View>
+        <Text variant="small" tone="faint" numeric>
+          {remaining.toFixed(1)} {goal.unit} to go
+          {todayWeighIn ? ` · ${todayWeighIn.value.toFixed(1)} this morning` : ''}
+        </Text>
       </View>
 
-      <Text variant="display" style={{ paddingTop: space(6), paddingBottom: space(8) }}>
-        Progress
+      <Section title="THIS WEEK">
+        <DayStrip plan={plan} />
+        <View style={{ flexDirection: 'row', gap: space(3) }}>
+          <Figure label="WEIGH-INS" value={`${week.done}`} note={`of ${week.required} this week`} />
+          <Figure
+            label="SESSIONS"
+            value={`${sessions.done}`}
+            note={sessions.total ? `of ${sessions.total} this week` : 'none scheduled'}
+          />
+        </View>
+      </Section>
+
+      <Text variant="micro" tone="faint" style={{ paddingTop: space(10), paddingBottom: space(4) }}>
+        THE TREND
       </Text>
 
       <WeightChart plan={plan} width={width - space(12)} />
