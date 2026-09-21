@@ -10,7 +10,7 @@ import { PART_SIZE, PART_SRC, PartName } from './emberParts';
  * one generated body, with generated eyes, mouths and arms placed on it (parts cut by
  * scripts/cut-rig.py, prompts in docs/ILLUSTRATION_STYLE.md). Every mood is the same body with a
  * different face and arms, so Ember looks the same on every screen. Blinking swaps the eyes; the
- * wave rotates the arm at the shoulder; the head bop is a transform. All motion stops under Reduce Motion.
+ * wave rotates the arm at the shoulder; a single head bop greets each new mood. All motion stops under Reduce Motion.
  *
  * On the dark theme Ember's black marker features would sink into the background, so it sits in a
  * soft glow of its own colour — a flame in the dark, which is what it is. */
@@ -102,17 +102,16 @@ function Figure({ mood, height, still, style }: { mood: EmberMood; height: numbe
     AccessibilityInfo.isReduceMotionEnabled().then(setReduce);
   }, []);
 
-  // Head bop: a nod to one side and the other, with a small bounce on each, pivoting at the base.
+  // Head bop: one nod to each side with a small bounce, pivoting at the base — once, when Ember
+  // appears or its mood changes, like a reaction. Continuous bopping was distracting.
   const beat = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (!moving) return;
-    const loop = Animated.loop(
-      Animated.timing(beat, { toValue: 1, duration: 1600, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-    );
     beat.setValue(0);
-    loop.start();
-    return () => loop.stop();
-  }, [moving, beat]);
+    const once = Animated.timing(beat, { toValue: 1, duration: 1100, easing: Easing.inOut(Easing.sin), useNativeDriver: true });
+    once.start();
+    return () => once.stop();
+  }, [moving, mood, beat]);
 
   // Blink: open eyes swap to closed for 150 ms, at a slightly irregular interval. Only for moods
   // with plain open eyes; the others already have their own eye shape.
@@ -145,10 +144,10 @@ function Figure({ mood, height, still, style }: { mood: EmberMood; height: numbe
   }, [moving, waving, swing]);
 
   /** A feature centred on an anchor on the body, sized from its source pixels. */
-  const place = (name: PartName, at: { x: number; y: number }, visible = true) => {
+  const place = (name: PartName, at: { x: number; y: number }, visible = true, scale = 1) => {
     const size = PART_SIZE[name];
-    const w = size.w * s;
-    const h = size.h * s;
+    const w = size.w * s * scale;
+    const h = size.h * s * scale;
     return (
       <Image
         key={name}
@@ -235,7 +234,8 @@ function Figure({ mood, height, still, style }: { mood: EmberMood; height: numbe
         <Image source={PART_SRC.body} style={{ position: 'absolute', left: bodyX, top: bodyY, width: bodyW, height: bodyH }} resizeMode="stretch" accessible={false} />
         {/* Both eye states are always mounted and swapped by opacity, so a blink is instant. */}
         {place(recipe.eyes, ANCHOR.eyes, !blinking)}
-        {recipe.eyes === 'eyes-open' && place('eyes-blink', ANCHOR.eyes, blinking)}
+        {/* The closed eyes are drawn a touch wide on the sheet; smaller reads as a blink, not a squint. */}
+        {recipe.eyes === 'eyes-open' && place('eyes-blink', ANCHOR.eyes, blinking, 0.75)}
         {place(recipe.mouth, ANCHOR.mouth)}
       </Animated.View>
     </View>
