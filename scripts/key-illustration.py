@@ -5,10 +5,14 @@ to magenta becomes transparent, edge pixels get partial alpha with the magenta s
 the result is trimmed to its content and exported at @2x and @3x.
 
     python3 scripts/key-illustration.py ~/Downloads/<file>.jpeg ember-scale [--width 240]
+    python3 scripts/key-illustration.py ~/Downloads/<blink>.jpeg ember-happy-blink --match ember-happy
 
 --width is the size in points the art is drawn at in the app (default 240).
+--match crops an animation frame with the same box as its base image, so a blink or wave frame
+lines up with the pose it swaps in for. Every crop box is recorded in assets/illustrations/boxes.json.
 """
 import argparse
+import json
 import os
 
 from PIL import Image, ImageFilter
@@ -19,10 +23,16 @@ ap.add_argument('name')
 ap.add_argument('--width', type=int, default=240)
 ap.add_argument('--strip-paper', action='store_true',
                 help='Also remove the torn paper-white patch the model sheet was generated with')
+ap.add_argument('--match', help='Name of the base image whose crop box this frame must reuse')
 ap.add_argument('--out', default=os.path.join(os.path.dirname(__file__), '..', 'assets', 'illustrations'))
 a = ap.parse_args()
 
 img = Image.open(os.path.expanduser(a.src)).convert('RGB')
+boxes_path = os.path.join(a.out, 'boxes.json')
+boxes = json.load(open(boxes_path)) if os.path.exists(boxes_path) else {}
+if a.match and tuple(boxes[a.match]['size']) != img.size:
+    # An edit can come back at a slightly different resolution; match the base's canvas first.
+    img = img.resize(tuple(boxes[a.match]['size']), Image.LANCZOS)
 w, h = img.size
 px = img.load()
 out = Image.new('RGBA', (w, h))
@@ -67,11 +77,17 @@ if a.strip_paper:
 r_, g_, b_, alpha_ = out.split()
 out = Image.merge('RGBA', (r_, g_, b_, alpha_.filter(ImageFilter.MinFilter(5))))
 
-box = out.getbbox()
+if a.match:
+    # A frame must share its base's box exactly, or the swap visibly jumps.
+    box = tuple(boxes[a.match]['box'])
+else:
+    box = out.getbbox()
+boxes[a.name] = {'box': list(box), 'size': list(img.size)}
 out = out.crop(box)
 os.makedirs(a.out, exist_ok=True)
 for scale in (2, 3):
     tw = a.width * scale
     th = round(out.height * tw / out.width)
     out.resize((tw, th), Image.LANCZOS).save(os.path.join(a.out, f'{a.name}@{scale}x.png'), optimize=True)
+json.dump(boxes, open(boxes_path, 'w'), indent=1)
 print(f'{a.name}: {out.width}x{out.height} source -> {a.width}pt wide')
