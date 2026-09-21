@@ -75,10 +75,46 @@ export const PART_SIZE = {
   "prop-sparks": {
     "w": 610,
     "h": 565
+  },
+  "arm-down": {
+    "w": 295,
+    "h": 707,
+    "pivot": {
+      "x": 177,
+      "y": 63
+    }
+  },
+  "arm-wave": {
+    "w": 412,
+    "h": 688,
+    "pivot": {
+      "x": 88,
+      "y": 629
+    }
+  },
+  "arm-hip": {
+    "w": 393,
+    "h": 530,
+    "pivot": {
+      "x": 261,
+      "y": 55
+    }
+  },
+  "arm-up": {
+    "w": 570,
+    "h": 550,
+    "pivot": {
+      "x": 85,
+      "y": 482
+    }
   }
 } as const;
 
 export const PART_SRC = {
+  'arm-down': require('../../assets/illustrations/rig/arm-down.png'),
+  'arm-hip': require('../../assets/illustrations/rig/arm-hip.png'),
+  'arm-up': require('../../assets/illustrations/rig/arm-up.png'),
+  'arm-wave': require('../../assets/illustrations/rig/arm-wave.png'),
   'body': require('../../assets/illustrations/rig/body.png'),
   'eyes-blink': require('../../assets/illustrations/rig/eyes-blink.png'),
   'eyes-determined': require('../../assets/illustrations/rig/eyes-determined.png'),

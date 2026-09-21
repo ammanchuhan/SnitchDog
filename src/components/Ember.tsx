@@ -7,41 +7,54 @@ import { PART_SIZE, PART_SRC, PartName } from './emberParts';
 /** Ember, the coach — assembled, not drawn.
  *
  * Image models can't keep a character identical from one picture to the next, so Ember is a rig:
- * one generated body, with generated eyes, mouths, arms and legs placed on it (parts cut by
+ * one generated body, with generated eyes, mouths and arms placed on it (parts cut by
  * scripts/cut-rig.py, prompts in docs/ILLUSTRATION_STYLE.md). Every mood is the same body with a
- * different face, so Ember looks the same on every screen. Blinking swaps the eyes; the head bop
- * is a transform. All motion stops under Reduce Motion.
+ * different face and arms, so Ember looks the same on every screen. Blinking swaps the eyes; the
+ * wave rotates the arm at the shoulder; the head bop is a transform. All motion stops under Reduce Motion.
  *
  * On the dark theme Ember's black marker features would sink into the background, so it sits in a
  * soft glow of its own colour — a flame in the dark, which is what it is. */
 
+type Arm = { part: PartName; flip?: boolean };
+
 type Recipe = {
   eyes: PartName;
   mouth: PartName;
+  /** Screen-left and screen-right arms. The art is drawn for one side; `flip` mirrors it. */
+  arms: [Arm, Arm];
   /** Worried Ember shrinks a little. */
   scale?: number;
 };
 
+const DOWN: [Arm, Arm] = [{ part: 'arm-down' }, { part: 'arm-down', flip: true }];
+const UP: [Arm, Arm] = [{ part: 'arm-up', flip: true }, { part: 'arm-up' }];
+
 const MOODS = {
-  hello: { eyes: 'eyes-open', mouth: 'mouth-smile' },
-  happy: { eyes: 'eyes-open', mouth: 'mouth-smile' },
-  proud: { eyes: 'eyes-open', mouth: 'mouth-laugh' },
-  laugh: { eyes: 'eyes-happy', mouth: 'mouth-laugh' },
-  worried: { eyes: 'eyes-worried', mouth: 'mouth-frown', scale: 0.94 },
-  sleepy: { eyes: 'eyes-sleepy', mouth: 'mouth-yawn' },
-  determined: { eyes: 'eyes-determined', mouth: 'mouth-half' },
+  hello: { eyes: 'eyes-open', mouth: 'mouth-smile', arms: [{ part: 'arm-down' }, { part: 'arm-wave' }] },
+  happy: { eyes: 'eyes-open', mouth: 'mouth-smile', arms: DOWN },
+  proud: { eyes: 'eyes-open', mouth: 'mouth-laugh', arms: UP },
+  laugh: { eyes: 'eyes-happy', mouth: 'mouth-laugh', arms: UP },
+  worried: { eyes: 'eyes-worried', mouth: 'mouth-frown', arms: DOWN, scale: 0.94 },
+  sleepy: { eyes: 'eyes-sleepy', mouth: 'mouth-yawn', arms: DOWN },
+  determined: { eyes: 'eyes-determined', mouth: 'mouth-half', arms: [{ part: 'arm-hip' }, { part: 'arm-hip', flip: true }] },
 } satisfies Record<string, Recipe>;
 
 export type EmberMood = keyof typeof MOODS;
 
-/** Where the features sit on the body, as fractions of the body's width and height. */
+/** Where things sit on the body, as fractions of the body's width and height. */
 const ANCHOR = {
   eyes: { x: 0.5, y: 0.6 },
   mouth: { x: 0.5, y: 0.71 },
+  shoulders: [{ x: 0.06, y: 0.66 }, { x: 0.94, y: 0.66 }],
 };
+/** The limb sheet was drawn a little large for the body. */
+const LIMB_SCALE = 0.85;
 
 const BODY = PART_SIZE.body;
-const ASPECT = BODY.w / BODY.h;
+/** The canvas leaves room around the body for arms thrown out and arms hanging below. */
+const CANVAS = { w: BODY.w * 1.9, h: BODY.h * 1.1 };
+const BODY_AT = { x: (CANVAS.w - BODY.w) / 2, y: 0 };
+const ASPECT = CANVAS.w / CANVAS.h;
 
 export function Ember({
   mood = 'happy',
@@ -60,8 +73,7 @@ export function Ember({
 }) {
   const [room, setRoom] = useState<{ w: number; h: number } | null>(null);
   if (fill) {
-    // Never wider than about two thirds of the space: a full-width flame stops reading as a character.
-    const h = room ? Math.min(room.h, (room.w * 0.66) / ASPECT) : 0;
+    const h = room ? Math.min(room.h, room.w / ASPECT) : 0;
     return (
       <View
         style={[{ flex: 1, alignItems: 'center', justifyContent: 'flex-end' }, style]}
@@ -78,7 +90,11 @@ function Figure({ mood, height, still, style }: { mood: EmberMood; height: numbe
   const t = useTheme();
   const recipe: Recipe = MOODS[mood];
   const width = height * ASPECT;
-  const s = height / BODY.h; // points per source pixel
+  const s = height / CANVAS.h; // points per source pixel
+  const bodyW = BODY.w * s;
+  const bodyH = BODY.h * s;
+  const bodyX = BODY_AT.x * s;
+  const bodyY = BODY_AT.y * s;
   const [reduce, setReduce] = useState(false);
   const moving = !still && !reduce;
 
@@ -117,7 +133,18 @@ function Figure({ mood, height, still, style }: { mood: EmberMood; height: numbe
     return () => clearTimeout(timer);
   }, [moving, recipe.eyes]);
 
-  /** A part centred on an anchor, sized from its source pixels. */
+  // Wave: the raised arm swings at the shoulder, a few quick swings then a rest.
+  const swing = useRef(new Animated.Value(0)).current;
+  const waving = recipe.arms.some((a) => a.part === 'arm-wave');
+  useEffect(() => {
+    if (!moving || !waving) return;
+    const one = (to: number) => Animated.timing(swing, { toValue: to, duration: 220, easing: Easing.inOut(Easing.quad), useNativeDriver: true });
+    const loop = Animated.loop(Animated.sequence([one(1), one(-0.4), one(1), one(-0.4), one(0), Animated.delay(1800)]));
+    loop.start();
+    return () => loop.stop();
+  }, [moving, waving, swing]);
+
+  /** A feature centred on an anchor on the body, sized from its source pixels. */
   const place = (name: PartName, at: { x: number; y: number }, visible = true) => {
     const size = PART_SIZE[name];
     const w = size.w * s;
@@ -126,10 +153,40 @@ function Figure({ mood, height, still, style }: { mood: EmberMood; height: numbe
       <Image
         key={name}
         source={PART_SRC[name]}
-        style={{ position: 'absolute', left: at.x * width - w / 2, top: at.y * height - h / 2, width: w, height: h, opacity: visible ? 1 : 0 }}
+        style={{ position: 'absolute', left: bodyX + at.x * bodyW - w / 2, top: bodyY + at.y * bodyH - h / 2, width: w, height: h, opacity: visible ? 1 : 0 }}
         resizeMode="stretch"
         accessible={false}
       />
+    );
+  };
+
+  /** An arm hung from its shoulder by its pivot, rotating around that pivot when it waves. */
+  const arm = ({ part, flip }: Arm, side: 0 | 1) => {
+    const size = PART_SIZE[part] as { w: number; h: number; pivot: { x: number; y: number } };
+    const w = size.w * LIMB_SCALE * s;
+    const h = size.h * LIMB_SCALE * s;
+    const px = (flip ? size.w - size.pivot.x : size.pivot.x) * LIMB_SCALE * s;
+    const py = size.pivot.y * LIMB_SCALE * s;
+    const at = ANCHOR.shoulders[side];
+    const rotate =
+      part === 'arm-wave' && moving
+        ? [{ rotate: swing.interpolate({ inputRange: [-1, 1], outputRange: ['14deg', '-14deg'] }) }]
+        : [];
+    return (
+      <Animated.View
+        key={`${part}-${side}`}
+        style={{
+          position: 'absolute',
+          left: bodyX + at.x * bodyW - px,
+          top: bodyY + at.y * bodyH - py,
+          width: w,
+          height: h,
+          // Rotate around the shoulder: move the pivot to the centre, rotate, move it back.
+          transform: [{ translateX: px - w / 2 }, { translateY: py - h / 2 }, ...rotate, { translateX: w / 2 - px }, { translateY: h / 2 - py }],
+        }}
+      >
+        <Image source={PART_SRC[part]} style={{ width: w, height: h, transform: flip ? [{ scaleX: -1 }] : [] }} resizeMode="stretch" accessible={false} />
+      </Animated.View>
     );
   };
 
@@ -172,7 +229,10 @@ function Figure({ mood, height, still, style }: { mood: EmberMood; height: numbe
           ],
         }}
       >
-        <Image source={PART_SRC.body} style={{ position: 'absolute', left: 0, top: 0, width, height }} resizeMode="stretch" accessible={false} />
+        {/* Arms first, so the body covers the shoulder ends. */}
+        {arm(recipe.arms[0], 0)}
+        {arm(recipe.arms[1], 1)}
+        <Image source={PART_SRC.body} style={{ position: 'absolute', left: bodyX, top: bodyY, width: bodyW, height: bodyH }} resizeMode="stretch" accessible={false} />
         {/* Both eye states are always mounted and swapped by opacity, so a blink is instant. */}
         {place(recipe.eyes, ANCHOR.eyes, !blinking)}
         {recipe.eyes === 'eyes-open' && place('eyes-blink', ANCHOR.eyes, blinking)}

@@ -9,6 +9,7 @@ it: open eyes and closed eyes share a centre, so a blink swaps in place instead 
 Writes assets/illustrations/rig/<part>@2x.png, @3x.png and rig/parts.json (each part's size in
 source pixels, which is the unit src/components/EmberRig.tsx lays the rig out in).
 """
+import colorsys
 import json
 import os
 import subprocess
@@ -38,6 +39,14 @@ SHEETS = {
         'mouth-yawn': (818, 568, 60, 75),
         'mouth-half': (1025, 558, 100, 75),
         'mouth-o': (1218, 568, 45, 75),
+    },
+    # Arms: the fifth item gives the shoulder pivot (in the same preview coordinates), which is
+    # where the arm attaches and what it rotates around when it waves.
+    'ember-limbs.jpeg': {
+        'arm-down': (285, 248, 75, 180, {'pivot': (300, 100)}),
+        'arm-wave': (555, 210, 105, 175, {'pivot': (495, 355)}),
+        'arm-hip': (807, 232, 100, 135, {'pivot': (840, 125), 'recolor': True}),
+        'arm-up': (1132, 200, 145, 140, {'pivot': (1030, 305)}),
     },
     'ember-props.jpeg': {
         'prop-scale': (295, 215, 180, 165, 'trim'),
@@ -75,6 +84,22 @@ def key(img):
     return Image.merge('RGBA', (r, g, b, al.filter(ImageFilter.MinFilter(3))))
 
 
+def recolor_to_tangerine(part):
+    """One arm came back yellow; move yellow paper to the tangerine the others use, keeping its
+    light and shade so the paper texture survives."""
+    th, tl, ts = colorsys.rgb_to_hls(255 / 255, 138 / 255, 92 / 255)
+    px = part.load()
+    for y in range(part.height):
+        for x in range(part.width):
+            r, g, b, a = px[x, y]
+            if a == 0:
+                continue
+            h, l, sat = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+            if 0.09 < h < 0.19 and sat > 0.35 and l > 0.4:
+                nr, ng, nb = colorsys.hls_to_rgb(th, min(0.95, tl * (l / 0.66)), ts)
+                px[x, y] = (int(nr * 255), int(ng * 255), int(nb * 255), a)
+
+
 parts = json.load(open(os.path.join(OUT, 'parts.json'))) if os.path.exists(os.path.join(OUT, 'parts.json')) else {}
 os.makedirs(OUT, exist_ok=True)
 for sheet, boxes in SHEETS.items():
@@ -90,10 +115,18 @@ for sheet, boxes in SHEETS.items():
             cx, cy, hw, hh = spec[:4]
             box = tuple(round(v * SCALE) for v in (cx - hw, cy - hh, cx + hw, cy + hh))
             part = keyed.crop(box)
-            if len(spec) > 4 and spec[4] == 'trim':
+            opts = spec[4] if len(spec) > 4 else None
+            if opts == 'trim':
                 # Props aren't anchored to each other, so they can lose their padding.
                 part = part.crop(part.getbbox())
+            elif isinstance(opts, dict):
+                if opts.get('recolor'):
+                    recolor_to_tangerine(part)
+                px, py = opts['pivot']
+                pivot = {'x': round((px - (cx - hw)) * SCALE), 'y': round((py - (cy - hh)) * SCALE)}
         parts[name] = {'w': part.width, 'h': part.height}
+        if spec != 'trim' and isinstance(spec[4] if len(spec) > 4 else None, dict):
+            parts[name]['pivot'] = pivot
         # Parts are laid out in source pixels; @3x is the source size, @2x two thirds of it.
         part.save(os.path.join(OUT, f'{name}@3x.png'), optimize=True)
         part.resize((round(part.width * 2 / 3), round(part.height * 2 / 3)), Image.LANCZOS).save(
