@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
 
 import { Button } from '../src/components/Button';
-import { Card } from '../src/components/Card';
 import { Field } from '../src/components/Field';
 import { Screen } from '../src/components/Screen';
 import { Text } from '../src/components/Text';
+import { WitnessRole } from '../src/components/WitnessRole';
 import { shortId } from '../src/lib/id';
 import { shareInvite } from '../src/lib/invite';
 import { useDismiss } from '../src/lib/nav';
@@ -95,12 +95,9 @@ export default function WitnessScreen() {
         />
       </View>
 
-      <Card style={{ marginTop: space(7), gap: space(2) }}>
-        <Text variant="bodyStrong">What they never see</Text>
-        <Text variant="small" tone="dim">
-          What you weigh, what you logged, how it&rsquo;s going. Only whether you showed up.
-        </Text>
-      </Card>
+      <View style={{ marginTop: space(7) }}>
+        <WitnessRole name={witness.name} />
+      </View>
 
       <View style={{ height: space(8) }} />
 

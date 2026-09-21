@@ -11,6 +11,7 @@ import { HourPicker, hourLabel } from '../src/components/HourPicker';
 import { RoutineEditor } from '../src/components/RoutineEditor';
 import { Screen } from '../src/components/Screen';
 import { Text } from '../src/components/Text';
+import { WitnessRole } from '../src/components/WitnessRole';
 import { shortId } from '../src/lib/id';
 import { checkTarget, checkWeight, heightOf, suggestTarget, targetNote } from '../src/lib/limits';
 import {
@@ -313,10 +314,7 @@ export default function Setup() {
                 onChangeText={setWitnessName}
                 autoCapitalize="words"
               />
-              <Text variant="small" tone="faint">
-                They don&rsquo;t install anything. They get a message, and only when it matters. They
-                never see your weight or your photos.
-              </Text>
+              <WitnessRole name={witnessName} />
             </View>
           )}
 
