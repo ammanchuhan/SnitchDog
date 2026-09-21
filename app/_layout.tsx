@@ -47,6 +47,7 @@ export default function RootLayout() {
             }}
           >
             <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+            <Stack.Screen name="plan" />
             <Stack.Screen name="log" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
           </Stack>
         </PlanProvider>

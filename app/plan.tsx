@@ -3,25 +3,27 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, View } from 'react-native';
 
-import { Button } from '../../src/components/Button';
-import { Field } from '../../src/components/Field';
-import { HourPicker, hourLabel } from '../../src/components/HourPicker';
-import { RoutineEditor } from '../../src/components/RoutineEditor';
-import { Screen } from '../../src/components/Screen';
-import { Text } from '../../src/components/Text';
-import { deletePlan, ownerLinkUrl } from '../../src/lib/api';
-import { shortId } from '../../src/lib/id';
-import { checkTarget, convert } from '../../src/lib/limits';
-import { usePlan } from '../../src/lib/store';
-import type { RoutineSlot } from '../../src/lib/types';
-import { WEIGH_INS_PER_WEEK } from '../../src/lib/types';
-import { radius, space, useTheme } from '../../src/theme';
+import { Button } from '../src/components/Button';
+import { Field } from '../src/components/Field';
+import { HourPicker, hourLabel } from '../src/components/HourPicker';
+import { RoutineEditor } from '../src/components/RoutineEditor';
+import { Screen } from '../src/components/Screen';
+import { Text } from '../src/components/Text';
+import { deletePlan, ownerLinkUrl } from '../src/lib/api';
+import { shortId } from '../src/lib/id';
+import { checkTarget, convert } from '../src/lib/limits';
+import { usePlan } from '../src/lib/store';
+import { useDismiss } from '../src/lib/nav';
+import type { RoutineSlot } from '../src/lib/types';
+import { WEIGH_INS_PER_WEEK } from '../src/lib/types';
+import { radius, space, useTheme } from '../src/theme';
 
-/** Everything set during onboarding, changeable afterwards. A goal you can't edit is a goal
+/** Everything set during onboarding, changeable afterwards. Reached from the gear on Home: it's
+ *  visited a few times a month, which doesn't earn it a tab. A goal you can't edit is a goal
  *  people abandon the app over rather than adjust. */
 export default function PlanScreen() {
   const { plan } = usePlan();
-  // As a tab this screen can mount before the plan has loaded from the phone. The form seeds its
+  // This screen can mount before the plan has loaded from the phone. The form seeds its
   // fields once, so it must not exist until there's a plan to seed them from — otherwise it
   // shows blanks, and saving would write the blanks over the real plan.
   if (!plan) return null;
@@ -31,6 +33,7 @@ export default function PlanScreen() {
 function PlanForm() {
   const { plan, update, clear } = usePlan();
   const router = useRouter();
+  const dismiss = useDismiss();
   const t = useTheme();
 
   const [target, setTarget] = useState(plan ? String(plan.goal.target) : '');
@@ -66,12 +69,16 @@ function PlanForm() {
   }
 
   return (
-    <Screen edges={['top']} style={{ paddingBottom: space(16) }}>
+    <Screen style={{ paddingBottom: space(16) }}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <Text variant="micro" tone="faint" style={{ paddingTop: space(6) }}>
-          PLAN
-        </Text>
-        <Text variant="display" style={{ paddingTop: space(2), paddingBottom: space(8) }}>
+        <View style={{ flexDirection: 'row', paddingTop: space(4) }}>
+          <Pressable onPress={dismiss} hitSlop={12}>
+            <Text variant="label" tone="faint">
+              Back
+            </Text>
+          </Pressable>
+        </View>
+        <Text variant="display" style={{ paddingTop: space(6), paddingBottom: space(8) }}>
           Your plan
         </Text>
 
@@ -167,7 +174,7 @@ function PlanForm() {
           )}
         </Section>
 
-        <View style={{ gap: space(3), paddingTop: space(4) }}>
+        <View style={{ gap: space(3), paddingTop: space(4), paddingBottom: space(10) }}>
           <Button label={saved ? 'Saved' : 'Save'} onPress={save} disabled={!valid || saved} />
         </View>
 

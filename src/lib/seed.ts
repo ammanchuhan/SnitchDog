@@ -5,10 +5,15 @@
  * they work against a real-looking run of weeks, including a bad one. Long-press the day
  * counter on the home screen in a dev build.
  */
+import { checkTarget } from './limits';
 import type { Plan, Session, WeighIn } from './types';
 import { shiftDate, slotsOn, toDate, weekStart } from './types';
 
-export function seeded(plan: Plan): Plan {
+export function seeded(original: Plan): Plan {
+  // A test plan saved with a nonsense target would seed a nonsense trend; swap in a sane one.
+  const plan = checkTarget(original.goal.start, original.goal.target, original.goal.unit)
+    ? { ...original, goal: { ...original.goal, target: Math.round(original.goal.start * 0.9) } }
+    : original;
   const today = toDate();
   const start = shiftDate(today, -41);
   const weighIns: WeighIn[] = [];
