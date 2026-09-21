@@ -5,15 +5,20 @@
  * they work against a real-looking run of weeks, including a bad one. Long-press the day
  * counter on the home screen in a dev build.
  */
-import { checkTarget } from './limits';
 import type { Plan, Session, WeighIn } from './types';
 import { shiftDate, slotsOn, toDate, weekStart } from './types';
 
+/** The demo person the seed builds: a realistic loss goal with a height, and a routine to miss
+ *  sessions from. Test sign-ups tend to leave odd goals behind (a gain target, a test witness), so
+ *  seeding resets to this rather than building history around whatever was typed last. */
+const DEMO: Pick<Plan, 'goal' | 'profile'> & { routine: Plan['routine'] } = {
+  goal: { unit: 'lb', start: 187.4, target: 169, wakeHour: 7, perWeek: 3 },
+  profile: { heightCm: 177.8, heightUnit: 'ft', age: 24, schedule: 'day', trainTime: 'evening', commitment: 'serious', pace: 'moderate' },
+  routine: [{ id: 'demo-workout', label: 'Workout', days: [1, 3, 5], hour: 18 }],
+};
+
 export function seeded(original: Plan): Plan {
-  // A test plan saved with a nonsense target would seed a nonsense trend; swap in a sane one.
-  const plan = checkTarget(original.goal.start, original.goal.target, original.goal.unit)
-    ? { ...original, goal: { ...original.goal, target: Math.round(original.goal.start * 0.9) } }
-    : original;
+  const plan: Plan = { ...original, goal: DEMO.goal, profile: DEMO.profile, routine: DEMO.routine };
   const today = toDate();
   const start = shiftDate(today, -41);
   const weighIns: WeighIn[] = [];
