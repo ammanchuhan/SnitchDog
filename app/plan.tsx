@@ -5,15 +5,16 @@ import { Alert, KeyboardAvoidingView, Platform, Pressable, View } from 'react-na
 
 import { Button } from '../src/components/Button';
 import { Field } from '../src/components/Field';
+import { HeightField } from '../src/components/HeightField';
 import { HourPicker, hourLabel } from '../src/components/HourPicker';
 import { RoutineEditor } from '../src/components/RoutineEditor';
 import { Screen } from '../src/components/Screen';
 import { Text } from '../src/components/Text';
 import { deletePlan, ownerLinkUrl } from '../src/lib/api';
-import { checkTarget, convert } from '../src/lib/limits';
+import { checkTarget, convert, heightOf, targetNote } from '../src/lib/limits';
 import { usePlan } from '../src/lib/store';
 import { useDismiss } from '../src/lib/nav';
-import type { RoutineSlot } from '../src/lib/types';
+import type { HeightUnit, RoutineSlot } from '../src/lib/types';
 import { WEIGH_INS_PER_WEEK } from '../src/lib/types';
 import { radius, space, useTheme } from '../src/theme';
 
@@ -39,19 +40,23 @@ function PlanForm() {
   const [unit, setUnit] = useState<'lb' | 'kg'>(plan?.goal.unit ?? 'lb');
   const [wakeHour, setWakeHour] = useState(plan?.goal.wakeHour ?? 7);
   const [routine, setRoutine] = useState<RoutineSlot[]>(plan?.routine ?? []);
+  const [heightCm, setHeightCm] = useState(plan?.profile?.heightCm);
+  const [heightUnit, setHeightUnit] = useState<HeightUnit>(plan?.profile?.heightUnit ?? 'ft');
+  const height = heightOf({ heightCm, heightUnit });
   const [saved, setSaved] = useState(false);
   // Any edit after a save means there's something to save again.
-  useEffect(() => setSaved(false), [target, unit, wakeHour, routine]);
+  useEffect(() => setSaved(false), [target, unit, wakeHour, routine, heightCm, heightUnit]);
 
   if (!plan) return null;
   // The start stays in the unit it was recorded in; compare like with like.
-  const targetProblem = checkTarget(convert(plan.goal.start, plan.goal.unit, unit), Number(target), unit);
+  const targetProblem = checkTarget(convert(plan.goal.start, plan.goal.unit, unit), Number(target), unit, height);
   const valid = Number(target) > 0 && !targetProblem;
 
   async function save() {
     if (!plan) return;
     await update({
       goal: { ...plan.goal, target: Number(target), unit, wakeHour },
+      profile: { ...plan.profile, heightCm, heightUnit },
       routine: routine.filter((s) => s.days.length > 0 && s.label.trim().length > 0),
     });
     setSaved(true);
@@ -105,9 +110,25 @@ function PlanForm() {
               ))}
             </View>
           </View>
-          {targetProblem && (
+          <HeightField
+            cm={heightCm}
+            unit={heightUnit}
+            onChange={(cm, u) => {
+              setHeightCm(cm);
+              setHeightUnit(u);
+            }}
+          />
+          {targetProblem ? (
             <Text variant="small" tone="ember">
               {targetProblem}
+            </Text>
+          ) : height ? (
+            <Text variant="small" tone="dim" numeric>
+              {targetNote(convert(plan.goal.start, plan.goal.unit, unit), Number(target), unit, height)}
+            </Text>
+          ) : (
+            <Text variant="small" tone="dim">
+              Add your height and the target range becomes yours instead of a guess.
             </Text>
           )}
           <Text variant="small" tone="faint" numeric>

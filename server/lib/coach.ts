@@ -49,9 +49,9 @@ const templates = (p: PlanRow, m: Moment): string => {
     case 'morning':
       return m.required - m.done <= 0
         ? `Morning. Scale's free today — you've already made your ${m.required}.`
-        : `Morning, ${p.owner_name}. Scale, then the app. ${m.required - m.done} more this week.`;
+        : `Morning, ${p.owner_name}. Step on the scale and send me a photo of it, number in the caption. ${m.required - m.done} more this week.`;
     case 'morning_chase':
-      return `Still no number. ${m.required - m.done} to go, ${m.left} ${m.left === 1 ? 'day' : 'days'} left.`;
+      return `Still no photo of the scale. ${m.required - m.done} to go, ${m.left} ${m.left === 1 ? 'day' : 'days'} left.`;
     case 'weighed':
       return 'Logged.';
     case 'session':
@@ -72,8 +72,8 @@ const templates = (p: PlanRow, m: Moment): string => {
 };
 
 const SITUATION: Record<Moment['kind'], string> = {
-  morning: 'It is their wake-up hour and they have not weighed in today. Ask for the number.',
-  morning_chase: 'Hours have passed and still no number. Ask again, shorter.',
+  morning: 'It is their wake-up hour and they have not weighed in today. Ask for a photo of the scale with the number as the caption (or to log it with a photo in the app).',
+  morning_chase: 'Hours have passed and still no weigh-in photo. Ask again, shorter.',
   weighed: 'They just logged a morning weigh-in. Acknowledge it in passing — one short line, and say nothing about the number itself.',
   session: 'A training session they scheduled is due. Ask whether they got it in.',
   session_chase: 'They have not answered about the session. Ask again, sharper.',

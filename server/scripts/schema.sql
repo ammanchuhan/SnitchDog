@@ -41,6 +41,12 @@ create table if not exists weigh_ins (
   primary key (plan_id, date)
 );
 
+-- Every weigh-in is backed by a photo of the scale. 'camera' photos stay on the owner's phone
+-- (only the fact of them is synced); 'telegram' photos stay on Telegram's servers, referenced by
+-- file id, so this database never stores an image.
+alter table weigh_ins add column if not exists proof text;
+alter table weigh_ins add column if not exists photo_file_id text;
+
 create table if not exists sessions (
   plan_id      text        not null references plans (id) on delete cascade,
   date         text        not null,

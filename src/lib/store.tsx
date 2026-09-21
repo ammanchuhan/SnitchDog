@@ -8,7 +8,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import { fetchPlan, pushPlan } from './api';
-import { Plan, Session, SessionStatus, toDate } from './types';
+import { deletePhoto } from './photos';
+import { Plan, Session, SessionStatus, toDate, WeighIn } from './types';
 
 const KEY = 'accountable.plan.v2';
 
@@ -17,7 +18,8 @@ type Ctx = {
   plan: Plan | null;
   start: (p: Plan) => Promise<void>;
   /** Today's number. Replaces an earlier reading on the same day rather than adding one. */
-  logWeight: (value: number, date?: string) => Promise<void>;
+  /** Every weigh-in carries its photo; the date is only for tests and backfills. */
+  logWeight: (value: number, photo: string, date?: string) => Promise<void>;
   answerSession: (slotId: string, status: SessionStatus, date?: string) => Promise<void>;
   /** Editing the plan: goal, wake time, routine, witness. */
   update: (patch: Partial<Plan>) => Promise<void>;
@@ -60,7 +62,7 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
       ownerChatId: remote.ownerChatId ?? plan.ownerChatId,
       escalatedWeeks: remote.escalatedWeeks ?? plan.escalatedWeeks,
       // The server may have answered on our behalf (a Telegram button) or recorded a miss.
-      weighIns: remote.weighIns.length >= plan.weighIns.length ? remote.weighIns : plan.weighIns,
+      weighIns: mergeWeighIns(plan.weighIns, remote.weighIns),
       sessions: mergeSessions(plan.sessions, remote.sessions, told),
     };
     setPlan(merged);
@@ -70,11 +72,13 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
   const start = useCallback((p: Plan) => persist(p), [persist]);
 
   const logWeight = useCallback(
-    async (value: number, date = toDate()) => {
+    async (value: number, photo: string, date = toDate()) => {
       if (!plan) return;
+      const replaced = plan.weighIns.find((w) => w.date === date);
+      if (replaced?.photo && replaced.photo !== photo) deletePhoto(replaced.photo);
       const weighIns = [
         ...plan.weighIns.filter((w) => w.date !== date),
-        { date, value, loggedAt: new Date().toISOString() },
+        { date, value, loggedAt: new Date().toISOString(), photo, proof: 'camera' as const },
       ].sort((a, b) => a.date.localeCompare(b.date));
       await persist({ ...plan, weighIns });
     },
@@ -135,3 +139,15 @@ export function usePlan() {
   if (!ctx) throw new Error('usePlan must be used inside PlanProvider');
   return ctx;
 }
+
+/** Union by day. The server knows about weigh-ins sent to the bot; only the phone has the photos
+ *  taken in the app, so a local entry keeps its photo even when the server has the same day. */
+function mergeWeighIns(local: WeighIn[], remote: WeighIn[]): WeighIn[] {
+  const byDate = new Map(remote.map((w) => [w.date, w]));
+  for (const w of local) {
+    const r = byDate.get(w.date);
+    byDate.set(w.date, r && r.loggedAt > w.loggedAt && r.proof === 'telegram' ? r : w);
+  }
+  return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+}
+

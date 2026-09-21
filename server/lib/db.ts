@@ -37,7 +37,14 @@ export type PlanRow = {
   escalated_weeks: string[];
 };
 
-export type WeighInRow = { plan_id: string; date: string; value: string; logged_at: string };
+export type WeighInRow = {
+  plan_id: string;
+  date: string;
+  value: string;
+  logged_at: string;
+  proof: 'camera' | 'telegram' | null;
+  photo_file_id: string | null;
+};
 
 export type SessionRow = {
   plan_id: string;

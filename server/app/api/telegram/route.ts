@@ -1,7 +1,7 @@
 /** The bot. Everything a person does outside the app happens here.
  *
  * Owners link their chat from the app, answer session questions with two buttons and log a
- * weigh-in by sending the number. Witnesses arrive through a deep link and never have to learn
+ * weigh-in by sending a photo of the scale with the number as the caption. Witnesses arrive through a deep link and never have to learn
  * a single command.
  */
 import { write } from '@/lib/coach';
@@ -13,7 +13,13 @@ import { requiredInWeek } from '@/lib/ladder';
 export const dynamic = 'force-dynamic';
 
 type Update = {
-  message?: { chat: { id: number }; text?: string };
+  message?: {
+    chat: { id: number };
+    text?: string;
+    caption?: string;
+    /** Every size Telegram made of a sent photo, smallest first. */
+    photo?: { file_id: string }[];
+  };
   callback_query?: {
     id: string;
     data?: string;
@@ -61,9 +67,9 @@ export async function POST(req: Request) {
 
   /* ── a message ──────────────────────────────────────────────────────── */
   const msg = update.message;
-  if (!msg?.text) return Response.json({ ok: true });
+  if (!msg || (!msg.text && !msg.photo)) return Response.json({ ok: true });
   const chatId = String(msg.chat.id);
-  const text = msg.text.trim();
+  const text = (msg.text ?? '').trim();
 
   if (text.startsWith('/start')) {
     const payload = text.split(' ')[1] ?? '';
@@ -133,15 +139,36 @@ export async function POST(req: Request) {
     return Response.json({ ok: true });
   }
 
-  // A bare number is this morning's weigh-in.
-  const value = Number(text.replace(/[^0-9.]/g, ''));
-  if (Number.isFinite(value) && value > 0) {
+  // A weigh-in is a photo of the scale with the number as its caption. A typed number alone
+  // doesn't count: it's the one thing anyone could fake, and the app doesn't accept it either.
+  const numberIn = (s: string) => {
+    const v = Number(s.replace(/[^0-9.]/g, ''));
+    return Number.isFinite(v) && v > 0 ? v : null;
+  };
+
+  if (msg.photo?.length) {
+    const value = numberIn(msg.caption ?? '');
+    if (value === null) {
+      await send(chatId, 'Got the photo. Send it again with the number as the caption so I can log it.');
+      return Response.json({ ok: true });
+    }
     const { date } = localNow(plan.timezone);
+    const fileId = msg.photo[msg.photo.length - 1].file_id; // the largest size
     await sql`
-      insert into weigh_ins (plan_id, date, value) values (${plan.id}, ${date}, ${value})
-      on conflict (plan_id, date) do update set value = excluded.value, logged_at = now()
+      insert into weigh_ins (plan_id, date, value, proof, photo_file_id)
+      values (${plan.id}, ${date}, ${value}, 'telegram', ${fileId})
+      on conflict (plan_id, date) do update
+        set value = excluded.value, logged_at = now(), proof = 'telegram', photo_file_id = excluded.photo_file_id
     `;
     await send(chatId, await write(plan, '', { kind: 'weighed' }));
+    return Response.json({ ok: true });
+  }
+
+  if (numberIn(text) !== null) {
+    await send(
+      chatId,
+      'I need the photo too. Take a picture of the scale showing the number and send it with the number as the caption — or log it in the app.',
+    );
   }
 
   return Response.json({ ok: true });

@@ -39,10 +39,11 @@ export async function PUT(req: Request) {
 
   for (const w of p.weighIns ?? []) {
     await sql`
-      insert into weigh_ins (plan_id, date, value, logged_at)
-      values (${p.id}, ${w.date}, ${w.value}, ${w.loggedAt ?? new Date().toISOString()})
+      insert into weigh_ins (plan_id, date, value, logged_at, proof)
+      values (${p.id}, ${w.date}, ${w.value}, ${w.loggedAt ?? new Date().toISOString()}, ${w.proof ?? null})
       on conflict (plan_id, date) do update
-        set value = excluded.value, logged_at = excluded.logged_at
+        set value = excluded.value, logged_at = excluded.logged_at,
+            proof = coalesce(excluded.proof, weigh_ins.proof)
     `;
   }
 

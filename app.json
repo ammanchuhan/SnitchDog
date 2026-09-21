@@ -32,7 +32,15 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Accountable takes a photo of the scale each time you weigh in, so the number is backed by something real.",
+          "photosPermission": false,
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

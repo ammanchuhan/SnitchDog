@@ -264,15 +264,33 @@ Weight-loss software can do real harm to people with disordered eating. Rules, i
   three readings a week produce an honest average.
 - ✅ **Progress follows a seven-day average, never today's reading.** Weight swings pounds on water
   alone. A bar that lurches on a heavy morning teaches people either to distrust it or to chase it.
-- ◑ **Target validation** (`src/lib/limits.ts`): numbers outside 70–700 lb / 32–320 kg are refused
-  as typos; a target more than 35% below or 25% above the starting weight is refused with the
-  nearest allowed value; a reading 5%+ from the last one gets a soft warning, never a block. A
-  target saved before the rule existed is flagged on Today. **Still to do:** a BMI floor, which
-  needs height (not collected), and a rate-of-loss check, which needs a target date (not
-  collected); and offering to continue without a target rather than refusing the person.
+- ✅ **Target validation, personal to the person** (`src/lib/limits.ts`). Sign-up asks height,
+  so limits are stated for *them* ("for someone 5′10″…"), never as a bare range. Rules:
+  - A weight that implies a BMI under 12 or over 80 is a typo or unit mix-up.
+  - **Floor:** no target below the bottom of the healthy range (BMI 18.5) for their height.
+  - **No ceiling at the top of the healthy range** — BMI can't tell muscle from fat, and a 5′10″
+    lifter aiming for 200 lb is reasonable. Building targets above it get a light joke instead of
+    a warning (only when gaining; someone bringing a high weight down gets a plain answer).
+  - Gain targets stop at BMI 34: past what muscle usually accounts for.
+  - Unchanged: at most 35% below / 25% above the start; a 5%+ jump between readings is a soft
+    warning, never a block; a bad target saved earlier is flagged on Home.
+  - Without a height (older plans), only the typo check applies and the message asks for the
+    height instead of quoting numbers. **Still to do:** offering to continue without a target.
+- ✅ **Pace is qualitative.** Sign-up asks steady / moderate / fast with no pounds-per-week or
+  arrival date: weight doesn't come off on a schedule, and a promised rate turns the first
+  plateau into a broken promise. Pace only nudges the workout count.
+- ✅ **Every weigh-in is backed by a photo of the scale** (`src/lib/photos.ts`, `app/log.tsx`).
+  Camera only, never the photo library, so an old picture can't stand in for this morning. The
+  photo comes before the number, so the number is copied from something real. Photos stay on the
+  phone; the server only learns *that* there was proof (`weigh_ins.proof`). Weigh-ins sent to the
+  bot must be a photo with the number as its caption (kept on Telegram, referenced by `file_id`);
+  a typed number alone is refused. **Known limit:** nothing yet checks that the photo shows a
+  scale or that the typed number matches it. Next step is reading the display from the photo
+  (a small vision call) and flagging mismatches — see §12 ideas.
 - ○ **Signposting**: a quiet, permanent link to eating-disorder support, and a softer path if a
   logged number drops implausibly fast.
-- ○ **Age**: 13+ minimum, and weight goals gated to 18+ unless there is a good reason not to.
+- ✅ **Age**: sign-up asks age and refuses under-18s — a weight target plus someone reporting on
+  you is the wrong setup for a minor.
 - ○ **Medical disclaimer** in-app and in the terms: not a medical device, no medical advice.
 
 ### 8.3 The LLM
@@ -307,6 +325,9 @@ Planned hardening: treat witness-bound generations as untrusted until they pass 
 | Goal, wake hour, weekly floor, timezone | device + server | The loop | Life of the plan |
 | Training schedule (labels, days, times) | device + server | So the coach can ask about a specific session | Life of the plan |
 | **Weigh-ins: date and number** | device + server | Progress, and the weekly floor | Life of the plan |
+| **Scale photos** | **device only** (app documents folder) | Proof the number is real | Until the plan is deleted |
+| Telegram scale photos | Telegram's servers; we keep only the `file_id` | Proof for weigh-ins sent to the bot | Life of the plan |
+| **Height, age, schedule, training time, commitment, pace** | **device only** (`plan.profile`, stripped in `pushPlan`) | Building the plan and a personal target range | Life of the plan |
 | Sessions: date, done/missed | device + server | The product | Life of the plan |
 | Witness first name | device + server | To address the invite and the escalation | ⚠️ see below |
 | Telegram chat ids (owner and witness) | server | The only way to reach either of them | Until unlinked or `/stop` |
@@ -412,6 +433,7 @@ users.
 
 | Idea | Why it fits | What it needs first |
 |---|---|---|
+| **Read the scale from the photo** | Closes the gap in §8.2: a photo of anything currently passes. A cheap vision call reads the display; a mismatch with the typed number (or no scale in shot) gets flagged, not silently accepted. | Photos would have to leave the phone for the check (then be deleted), which changes the privacy story in §9 and needs the owner's clear consent. Cost fits under the existing per-plan AI budget. |
 | **A backup witness** (discussed 2026-09-21) | Not a group — the decision below stands, because a message to three people lets each assume someone else will reply. But one witness can go quiet, be on holiday, or stop caring. A named second person who hears only when the first doesn't respond within a day keeps the single, personal ask and adds a rung to the ladder. | Evidence from real users that witnesses actually go unresponsive, and the witness side of the bot reporting whether they replied. |
 | **Language learning as a proof type** (from Amman, 2026-09-21) | The coach *calls* you and speaks the language you're learning, dropping into your own language when you need a bridge. The proof is showing up for the call. Same ladder: miss the week's floor and the witness hears. | Voice calls (already the planned next delivery channel), a second `Proof` variant, and a real answer to "why this and not Duolingo?" — Duolingo already ships AI video-call practice, so the difference has to be the witness and the ladder, not the conversation. |
 
@@ -443,3 +465,4 @@ users.
 |---|---|
 | 2026-09-20 | First version: architecture, stack, ladder, security gaps, safety rules, privacy inventory, legal checklist. |
 | 2026-09-20 rev 2 | Two-stream model (weekly weigh-in floor + scheduled sessions), editable plan, seven-day average, pro-rated first week. Witness `/stop` shipped. Weight values removed from the LLM prompt. |
+| 2026-09-21 | Sign-up questionnaire (name, age 18+, height ft/in or cm, weight + target with a personal range, pace, schedule, wake time, commitment, training time) builds a starting routine. Photo proof required for every weigh-in, in the app and on Telegram. Home is the middle tab; witness has its own screen. |
