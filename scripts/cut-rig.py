@@ -125,6 +125,12 @@ for sheet, boxes in SHEETS.items():
                 px, py = opts['pivot']
                 pivot = {'x': round((px - (cx - hw)) * SCALE), 'y': round((py - (cy - hh)) * SCALE)}
         parts[name] = {'w': part.width, 'h': part.height}
+        # Where the ink actually is inside the part's box. Features are aligned by their ink
+        # (eyes by the bottom of the eyes, mouths by the top of the mouth), not by the box centre,
+        # so a tall laughing mouth grows down instead of up into the eyes.
+        ink = part.split()[3].point(lambda v: 255 if v > 60 else 0).getbbox()
+        if ink:
+            parts[name]['ink'] = {'x': ink[0], 'y': ink[1], 'w': ink[2] - ink[0], 'h': ink[3] - ink[1]}
         if spec != 'trim' and isinstance(spec[4] if len(spec) > 4 else None, dict):
             parts[name]['pivot'] = pivot
         # Parts are laid out in source pixels; @3x is the source size, @2x two thirds of it.

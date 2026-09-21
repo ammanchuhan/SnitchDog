@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Easing, Image, View, ViewStyle } from 'react-native';
 
 import { useTheme } from '../theme';
+import LAYOUT from './emberLayout.json';
 import { PART_SIZE, PART_SRC, PartName } from './emberParts';
 
 /** Ember, the coach — assembled, not drawn.
@@ -41,18 +42,14 @@ const MOODS = {
 
 export type EmberMood = keyof typeof MOODS;
 
-/** Where things sit on the body, as fractions of the body's width and height. */
-const ANCHOR = {
-  eyes: { x: 0.5, y: 0.6 },
-  mouth: { x: 0.5, y: 0.71 },
-  shoulders: [{ x: 0.06, y: 0.66 }, { x: 0.94, y: 0.66 }],
-};
+/** Shoulders, as fractions of the body's width and height. */
+const ANCHOR = { shoulders: LAYOUT.shoulders };
 /** The limb sheet was drawn a little large for the body. */
-const LIMB_SCALE = 0.85;
+const LIMB_SCALE = LAYOUT.limbScale;
 
 const BODY = PART_SIZE.body;
 /** The canvas leaves room around the body for arms thrown out and arms hanging below. */
-const CANVAS = { w: BODY.w * 1.9, h: BODY.h * 1.1 };
+const CANVAS = { w: BODY.w * LAYOUT.canvas.w, h: BODY.h * LAYOUT.canvas.h };
 const BODY_AT = { x: (CANVAS.w - BODY.w) / 2, y: 0 };
 const ASPECT = CANVAS.w / CANVAS.h;
 
@@ -143,16 +140,24 @@ function Figure({ mood, height, still, style }: { mood: EmberMood; height: numbe
     return () => loop.stop();
   }, [moving, waving, swing]);
 
-  /** A feature centred on an anchor on the body, sized from its source pixels. */
-  const place = (name: PartName, at: { x: number; y: number }, visible = true, scale = 1) => {
-    const size = PART_SIZE[name];
-    const w = size.w * s * scale;
-    const h = size.h * s * scale;
+  /** A face feature, aligned by its ink rather than its box: eyes sit on a line by their bottom
+   *  edge, mouths hang from a line by their top edge, so a tall laughing mouth grows downward
+   *  instead of into the eyes. Sizes and lines come from emberLayout.json, which the proof
+   *  sheet (scripts/proof-rig.py) also reads. */
+  const place = (name: PartName, visible = true) => {
+    const size = PART_SIZE[name] as { w: number; h: number; ink: { x: number; y: number; w: number; h: number } };
+    const k = (LAYOUT.scale as Record<string, number>)[name] ?? 1;
+    const w = size.w * k * s;
+    const h = size.h * k * s;
+    const ink = { x: size.ink.x * k * s, y: size.ink.y * k * s, w: size.ink.w * k * s, h: size.ink.h * k * s };
+    const eyes = name.startsWith('eyes');
+    const left = bodyX + LAYOUT.centerX * bodyW - (ink.x + ink.w / 2);
+    const top = eyes ? bodyY + LAYOUT.eyesBottom * bodyH - (ink.y + ink.h) : bodyY + LAYOUT.mouthTop * bodyH - ink.y;
     return (
       <Image
         key={name}
         source={PART_SRC[name]}
-        style={{ position: 'absolute', left: bodyX + at.x * bodyW - w / 2, top: bodyY + at.y * bodyH - h / 2, width: w, height: h, opacity: visible ? 1 : 0 }}
+        style={{ position: 'absolute', left, top, width: w, height: h, opacity: visible ? 1 : 0 }}
         resizeMode="stretch"
         accessible={false}
       />
@@ -233,10 +238,9 @@ function Figure({ mood, height, still, style }: { mood: EmberMood; height: numbe
         {arm(recipe.arms[1], 1)}
         <Image source={PART_SRC.body} style={{ position: 'absolute', left: bodyX, top: bodyY, width: bodyW, height: bodyH }} resizeMode="stretch" accessible={false} />
         {/* Both eye states are always mounted and swapped by opacity, so a blink is instant. */}
-        {place(recipe.eyes, ANCHOR.eyes, !blinking)}
-        {/* The closed eyes are drawn a touch wide on the sheet; smaller reads as a blink, not a squint. */}
-        {recipe.eyes === 'eyes-open' && place('eyes-blink', ANCHOR.eyes, blinking, 0.75)}
-        {place(recipe.mouth, ANCHOR.mouth)}
+        {place(recipe.eyes, !blinking)}
+        {recipe.eyes === 'eyes-open' && place('eyes-blink', blinking)}
+        {place(recipe.mouth)}
       </Animated.View>
     </View>
   );
