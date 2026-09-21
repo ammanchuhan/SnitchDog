@@ -264,9 +264,12 @@ Weight-loss software can do real harm to people with disordered eating. Rules, i
   three readings a week produce an honest average.
 - ✅ **Progress follows a seven-day average, never today's reading.** Weight swings pounds on water
   alone. A bar that lurches on a heavy morning teaches people either to distrust it or to chase it.
-- ○ **Target validation**: refuse targets below a plainly unhealthy BMI, and refuse rates of loss
-  above roughly 1% of body weight per week. Offer to continue with the check-in but without a
-  target, rather than refusing the person.
+- ◑ **Target validation** (`src/lib/limits.ts`): numbers outside 70–700 lb / 32–320 kg are refused
+  as typos; a target more than 35% below or 25% above the starting weight is refused with the
+  nearest allowed value; a reading 5%+ from the last one gets a soft warning, never a block. A
+  target saved before the rule existed is flagged on Today. **Still to do:** a BMI floor, which
+  needs height (not collected), and a rate-of-loss check, which needs a target date (not
+  collected); and offering to continue without a target rather than refusing the person.
 - ○ **Signposting**: a quiet, permanent link to eating-disorder support, and a softer path if a
   logged number drops implausibly fast.
 - ○ **Age**: 13+ minimum, and weight goals gated to 18+ unless there is a good reason not to.
