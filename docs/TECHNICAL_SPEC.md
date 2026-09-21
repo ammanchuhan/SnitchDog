@@ -412,6 +412,7 @@ users.
 
 | Idea | Why it fits | What it needs first |
 |---|---|---|
+| **A backup witness** (discussed 2026-09-21) | Not a group — the decision below stands, because a message to three people lets each assume someone else will reply. But one witness can go quiet, be on holiday, or stop caring. A named second person who hears only when the first doesn't respond within a day keeps the single, personal ask and adds a rung to the ladder. | Evidence from real users that witnesses actually go unresponsive, and the witness side of the bot reporting whether they replied. |
 | **Language learning as a proof type** (from Amman, 2026-09-21) | The coach *calls* you and speaks the language you're learning, dropping into your own language when you need a bridge. The proof is showing up for the call. Same ladder: miss the week's floor and the witness hears. | Voice calls (already the planned next delivery channel), a second `Proof` variant, and a real answer to "why this and not Duolingo?" — Duolingo already ships AI video-call practice, so the difference has to be the witness and the ladder, not the conversation. |
 
 ---

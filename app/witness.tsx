@@ -1,26 +1,58 @@
-import { Pressable, Share, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, Pressable, View } from 'react-native';
 
 import { Button } from '../src/components/Button';
 import { Card } from '../src/components/Card';
+import { Field } from '../src/components/Field';
 import { Screen } from '../src/components/Screen';
 import { Text } from '../src/components/Text';
-import { witnessInviteUrl } from '../src/lib/api';
+import { shortId } from '../src/lib/id';
+import { shareInvite } from '../src/lib/invite';
 import { useDismiss } from '../src/lib/nav';
 import { usePlan } from '../src/lib/store';
+import { escalationCount } from '../src/lib/types';
 import { radius, space, useTheme } from '../src/theme';
 
-/** Nobody hands over a friend's attention blind, so this screen shows the exact messages
- *  that will be sent before asking for the invite. */
+/** Everything about the witness, in one place: who it is, whether they've accepted, what they
+ *  will and won't see, the invite, and changing who it is.
+ *
+ *  Nobody hands over a friend's attention blind, so the exact messages come before the invite. */
 export default function WitnessScreen() {
-  const { plan } = usePlan();
+  const { plan, update } = usePlan();
   const dismiss = useDismiss();
   const t = useTheme();
+  const [changing, setChanging] = useState(false);
+  const [newName, setNewName] = useState('');
 
   if (!plan) return null;
-  const { witness, ownerName, goal } = plan;
-  const url = witnessInviteUrl(witness.inviteToken);
+  const called = escalationCount(plan);
 
-  const invite = `${witness.name} \u2014 I\u2019m using an app called Accountable to stay on top of training and weighing in, and I picked you as my witness. You don\u2019t install anything, and you\u2019ll only hear from it if I go quiet.\n\n${url}`;
+  function swap() {
+    const name = newName.trim();
+    if (!plan || !name) return;
+    Alert.alert(
+      `Make ${name} your witness?`,
+      `${plan.witness.name} stops hearing about you. ${name} has to accept before anything counts, and the called count starts again at zero.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Change',
+          style: 'destructive',
+          onPress: async () => {
+            // A new witness is a new deal: new invite, nobody watching, and the count starts again.
+            await update({
+              witness: { name, linked: false, inviteToken: shortId(16) },
+              escalatedWeeks: [],
+              sessions: plan.sessions.map((s) => ({ ...s, escalatedAt: undefined })),
+            });
+            setChanging(false);
+            setNewName('');
+          },
+        },
+      ],
+    );
+  }
+  const { witness, ownerName, goal } = plan;
 
   return (
     <Screen>
@@ -40,6 +72,11 @@ export default function WitnessScreen() {
         <Text variant="body" tone={witness.linked ? 'good' : 'ember'}>
           {witness.linked ? 'Accepted. They are watching.' : 'Waiting on them. Until they accept, nobody is watching.'}
         </Text>
+        {witness.linked && (
+          <Text variant="small" tone={called > 0 ? 'ember' : 'faint'} numeric>
+            {called === 0 ? 'They haven\u2019t had to hear about you yet.' : `Called ${called} ${called === 1 ? 'time' : 'times'} so far.`}
+          </Text>
+        )}
       </View>
 
       <Text variant="heading" style={{ marginBottom: space(4) }}>
@@ -72,12 +109,53 @@ export default function WitnessScreen() {
           whether it has been accepted. */}
       <Button
         label={witness.linked ? 'Share the link again' : 'Share the invite'}
-        onPress={() => Share.share({ message: invite })}
+        onPress={() => shareInvite(plan)}
       />
       {!witness.linked && (
         <Text variant="small" tone="faint" center style={{ paddingTop: space(3) }}>
           Nothing counts until {witness.name} taps it.
         </Text>
+      )}
+
+      <View style={{ height: 1, backgroundColor: t.lineSoft, marginTop: space(10), marginBottom: space(6) }} />
+
+      {!changing ? (
+        <Pressable onPress={() => setChanging(true)} hitSlop={8}>
+          <Text variant="label" tone="dim" center>
+            Pick someone else
+          </Text>
+        </Pressable>
+      ) : (
+        <View style={{ gap: space(3) }}>
+          <Field
+            label="New witness"
+            value={newName}
+            onChangeText={setNewName}
+            autoCapitalize="words"
+            autoFocus
+            placeholder="Their first name"
+          />
+          <Text variant="small" tone="faint">
+            New witness, new deal: they&rsquo;ll need to accept, and the called count goes back to zero.
+          </Text>
+          <View style={{ flexDirection: 'row', gap: space(3) }}>
+            <Button
+              label="Cancel"
+              variant="secondary"
+              style={{ flex: 1 }}
+              onPress={() => {
+                setChanging(false);
+                setNewName('');
+              }}
+            />
+            <Button
+              label="Change"
+              style={{ flex: 1 }}
+              disabled={!newName.trim() || newName.trim() === witness.name}
+              onPress={swap}
+            />
+          </View>
+        </View>
       )}
     </Screen>
   );

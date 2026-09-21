@@ -9,11 +9,13 @@ import { DayStrip } from '../../src/components/DayStrip';
 import { Figure, Section } from '../../src/components/Figure';
 import { hourLabel } from '../../src/components/HourPicker';
 import { Text } from '../../src/components/Text';
+import { shareInvite } from '../../src/lib/invite';
 import { checkTarget } from '../../src/lib/limits';
 import { seeded } from '../../src/lib/seed';
 import { usePlan } from '../../src/lib/store';
 import {
   currentAverage,
+  escalationCount,
   previousAverage,
   progress,
   sessionFor,
@@ -23,7 +25,7 @@ import {
   weekStatus,
   weighInOn,
 } from '../../src/lib/types';
-import { space, useTheme } from '../../src/theme';
+import { radius, space, useTheme } from '../../src/theme';
 
 const clockTime = (iso?: string) => {
   if (!iso) return '';
@@ -68,6 +70,7 @@ export default function Home() {
   const remaining = Math.abs((average ?? goal.start) - goal.target);
   const toward = trend !== undefined && Math.sign(trend) === Math.sign(goal.target - goal.start);
   const targetProblem = checkTarget(goal.start, goal.target, goal.unit);
+  const called = escalationCount(plan);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }} edges={['top']}>
@@ -103,6 +106,55 @@ export default function Home() {
         <Text variant="display" style={{ paddingTop: space(2), paddingBottom: space(6) }}>
           {greeting(plan.ownerName)}
         </Text>
+
+        {/* Without an accepted witness there is no deal, only a tracker. That's the one thing worth
+            putting above the numbers, and it goes away the moment they accept. */}
+        {!witness.linked && (
+          <View
+            style={{
+              borderRadius: radius.lg,
+              backgroundColor: t.ember,
+              padding: space(5),
+              gap: space(4),
+              marginBottom: space(8),
+            }}
+          >
+            <View style={{ gap: space(2) }}>
+              <Text variant="micro" tone="onEmber">
+                NOBODY IS WATCHING YET
+              </Text>
+              <Text variant="title" tone="onEmber">
+                {witness.name} hasn&rsquo;t accepted
+              </Text>
+              <Text variant="small" tone="onEmber">
+                Until they do, a missed week goes nowhere. Send the invite, then nudge them to tap it.
+              </Text>
+            </View>
+            <View style={{ flexDirection: 'row', gap: space(3), alignItems: 'center' }}>
+              <Pressable
+                onPress={() => shareInvite(plan)}
+                accessibilityRole="button"
+                style={{
+                  flex: 1,
+                  height: 48,
+                  borderRadius: radius.pill,
+                  backgroundColor: t.bg,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text variant="label" tone="ember">
+                  Send {witness.name} the invite
+                </Text>
+              </Pressable>
+              <Pressable onPress={() => router.push('/witness')} hitSlop={12} accessibilityRole="button">
+                <Text variant="label" tone="onEmber">
+                  Details ›
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
 
         {/* A target saved before the limits existed still has to be fixed, not quietly honoured. */}
         {targetProblem ? (
@@ -235,18 +287,35 @@ export default function Home() {
           </View>
         </Section>
 
-        {/* The one thing worth interrupting for: without an accepted witness, there's no deal. */}
-        {!witness.linked && (
-          <Pressable onPress={() => router.push('/witness')} style={{ marginTop: space(8) }}>
-            <Card style={{ borderColor: t.ember, gap: space(2) }}>
-              <Text variant="bodyStrong" tone="ember">
-                Nobody is watching yet
+        {/* Once they've accepted, the witness settles into a quiet card at the bottom. */}
+        {witness.linked && (
+          <Section title="YOUR WITNESS">
+            <Pressable
+              onPress={() => router.push('/witness')}
+              accessibilityRole="button"
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderRadius: radius.md,
+                borderWidth: 1,
+                borderColor: t.line,
+                backgroundColor: t.surface,
+                padding: space(4),
+              }}
+            >
+              <View style={{ flex: 1, gap: space(1) }}>
+                <Text variant="bodyStrong">{witness.name} is watching</Text>
+                <Text variant="small" tone="dim">
+                  {called === 0 ? 'Not called yet.' : `Called ${called} ${called === 1 ? 'time' : 'times'}.`} What they
+                  see, or pick someone else.
+                </Text>
+              </View>
+              <Text variant="heading" tone="faint">
+                ›
               </Text>
-              <Text variant="small" tone="dim">
-                {witness.name} hasn&rsquo;t accepted. Until they do, this is just a tracker.
-              </Text>
-            </Card>
-          </Pressable>
+            </Pressable>
+          </Section>
         )}
       </ScrollView>
     </SafeAreaView>
