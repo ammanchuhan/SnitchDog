@@ -11,6 +11,7 @@
  */
 import Anthropic from '@anthropic-ai/sdk';
 
+import { allow, MODEL } from './budget';
 import { sql } from './db';
 
 const LIMIT = 25;
@@ -39,11 +40,11 @@ exactly: none`;
 
 /** Writes new memories after an exchange. Best effort — a failure here must never break a reply. */
 export async function remember(planId: string, exchange: string, existing: Memory[]) {
-  if (!process.env.ANTHROPIC_API_KEY) return;
+  if (!(await allow(planId))) return;
   try {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const res = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: MODEL,
       max_tokens: 200,
       system: EXTRACT,
       messages: [

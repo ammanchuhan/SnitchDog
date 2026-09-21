@@ -182,6 +182,20 @@ to and the time it moved, and entries upsert on `(commitment_id, date)`.
 | `TELEGRAM_WEBHOOK_SECRET` | server | Echoed by Telegram in `X-Telegram-Bot-Api-Secret-Token`; rejects forged updates. ✅ enforced |
 | `ANTHROPIC_API_KEY` | server | Absent → templates. Never reaches the client. |
 | `CRON_SECRET` | server | Vercel sets it; `/api/tick` rejects callers without it. ✅ enforced |
+| `AI_CALLS_PER_PLAN_PER_DAY` | server | Default 30. Model calls one plan may trigger per UTC day. ✅ enforced (`lib/budget.ts`) |
+| `AI_CALLS_PER_DAY` | server | Default 300. Model calls across the whole app per UTC day. ✅ enforced |
+
+### Cost ceiling
+
+Every model call — nudges, the in-app coach, memory extraction — passes `allow()` in
+`lib/budget.ts`, which counts it in `ai_usage` and refuses past either daily limit. Refused calls
+fall back to the written templates, so the loop never breaks; it just stops being written by a
+model for the rest of the day. It fails closed: if the count can't be taken, nothing is spent.
+Typed input is cut to 1,000 characters before it reaches the model.
+
+At the default ceiling the worst case is roughly **$1–2 a day** on Claude Haiku 4.5, and only if
+the limit is hit every day. The hard stop sits outside the code: **prepaid Anthropic credits with
+auto-reload off**, so the account cannot spend more than it holds.
 
 Secrets live only in Vercel project settings and `server/.env.local`, which is gitignored. No
 secret is ever shipped in the app bundle, because anyone can read an app bundle.
