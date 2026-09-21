@@ -27,7 +27,13 @@ async function call<T>(path: string, init?: RequestInit): Promise<T | null> {
 }
 
 /** Push local state up; the server returns its own view, which wins for escalations. */
-export const pushPlan = (p: Plan) => call<Plan>('/api/plan', { method: 'PUT', body: JSON.stringify(p) });
+export const pushPlan = ({ profile, ...rest }: Plan) =>
+  // Height, age and the answers behind the plan stay on the phone; the server has no use for them.
+  call<Plan>('/api/plan', {
+    method: 'PUT',
+    // Photo file names mean nothing off the phone; whether there was proof does.
+    body: JSON.stringify({ ...rest, weighIns: rest.weighIns.map(({ photo, ...w }) => w) }),
+  });
 
 export const fetchPlan = (id: string) => call<Plan>(`/api/plan/${id}`);
 

@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { Image, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '../../src/components/Button';
@@ -10,7 +10,8 @@ import { Figure, Section } from '../../src/components/Figure';
 import { hourLabel } from '../../src/components/HourPicker';
 import { Text } from '../../src/components/Text';
 import { shareInvite } from '../../src/lib/invite';
-import { checkTarget } from '../../src/lib/limits';
+import { checkTarget, heightOf } from '../../src/lib/limits';
+import { photoUri } from '../../src/lib/photos';
 import { seeded } from '../../src/lib/seed';
 import { usePlan } from '../../src/lib/store';
 import {
@@ -69,7 +70,7 @@ export default function Home() {
   const trend = average !== undefined && previous !== undefined ? average - previous : undefined;
   const remaining = Math.abs((average ?? goal.start) - goal.target);
   const toward = trend !== undefined && Math.sign(trend) === Math.sign(goal.target - goal.start);
-  const targetProblem = checkTarget(goal.start, goal.target, goal.unit);
+  const targetProblem = checkTarget(goal.start, goal.target, goal.unit, heightOf(plan.profile));
   const called = escalationCount(plan);
 
   return (
@@ -222,13 +223,22 @@ export default function Home() {
                   <Button label="Log this morning" onPress={() => router.push('/log')} />
                 </Card>
               ) : (
-                <Card tone="good" style={{ gap: space(1) }}>
-                  <Text variant="micro" tone="good">
-                    WEIGHED IN AT {clockTime(weighIn.loggedAt).toUpperCase()}
-                  </Text>
-                  <Text variant="heading" numeric>
-                    {weighIn.value.toFixed(1)} {goal.unit}
-                  </Text>
+                <Card tone="good" style={{ flexDirection: 'row', alignItems: 'center', gap: space(4) }}>
+                  <View style={{ flex: 1, gap: space(1) }}>
+                    <Text variant="micro" tone="good">
+                      WEIGHED IN AT {clockTime(weighIn.loggedAt).toUpperCase()}
+                    </Text>
+                    <Text variant="heading" numeric>
+                      {weighIn.value.toFixed(1)} {goal.unit}
+                    </Text>
+                  </View>
+                  {weighIn.photo && (
+                    <Image
+                      source={{ uri: photoUri(weighIn.photo) }}
+                      accessibilityLabel="This morning's scale photo"
+                      style={{ width: 44, height: 58, borderRadius: radius.sm }}
+                    />
+                  )}
                 </Card>
               )}
 

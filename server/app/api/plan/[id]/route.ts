@@ -31,7 +31,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       linkedAt: p.witness_linked_at ?? undefined,
       inviteToken: p.witness_token,
     },
-    weighIns: weighIns.map((w) => ({ date: w.date, value: Number(w.value), loggedAt: w.logged_at })),
+    weighIns: weighIns.map((w) => ({ date: w.date, value: Number(w.value), loggedAt: w.logged_at, proof: w.proof ?? undefined })),
     // 'pending' rows are follow-up bookkeeping, not answers — the app never sees them.
     sessions: sessions
       .filter((s) => s.status !== 'pending')

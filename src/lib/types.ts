@@ -52,6 +52,13 @@ export type WeighIn = {
   date: string;
   value: number;
   loggedAt: string;
+  /** The photo of the scale, taken with the camera at the moment of logging. A file name inside
+   *  the app's documents folder (never a full path: that changes between app installs). The
+   *  photo stays on the phone. */
+  photo?: string;
+  /** How the number is backed: a photo in the app, or a photo sent to the bot. Entries from
+   *  before photos were required have neither. */
+  proof?: 'camera' | 'telegram';
 };
 
 export type SessionStatus = 'done' | 'missed';
@@ -73,6 +80,28 @@ export type Witness = {
   inviteToken: string;
 };
 
+export type HeightUnit = 'ft' | 'cm';
+export type Schedule = 'day' | 'early' | 'late' | 'varies' | 'home';
+export type TrainTime = 'morning' | 'midday' | 'evening' | 'any';
+/** How much they're signing up for: sets the number of workouts a week. */
+export type Commitment = 'easing' | 'serious' | 'all_in';
+/** How fast they want to move, as a share of body weight a week. Sets expectations, not rules. */
+export type Pace = 'steady' | 'moderate' | 'fast';
+
+/** About the person, asked once at sign-up and used to build the plan and set an honest target
+ *  range. **Stays on this phone.** Nothing the server does needs a height or an age, so they are
+ *  stripped before any sync (see api.ts). All optional: plans made before sign-up asked lack it. */
+export type Profile = {
+  heightCm?: number;
+  /** How they entered it, so it's shown back the same way. */
+  heightUnit?: HeightUnit;
+  age?: number;
+  schedule?: Schedule;
+  trainTime?: TrainTime;
+  commitment?: Commitment;
+  pace?: Pace;
+};
+
 export type Plan = {
   id: string;
   /** First name only — it appears in the message the witness receives. */
@@ -80,6 +109,7 @@ export type Plan = {
   timezone: string;
   createdAt: string;
   goal: Goal;
+  profile?: Profile;
   routine: RoutineSlot[];
   witness: Witness;
   weighIns: WeighIn[];

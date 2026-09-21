@@ -1,8 +1,9 @@
-import { Pressable, View } from 'react-native';
+import { Image, Pressable, View } from 'react-native';
 
 import { Screen } from '../src/components/Screen';
 import { Text } from '../src/components/Text';
 import { useDismiss } from '../src/lib/nav';
+import { photoUri } from '../src/lib/photos';
 import { usePlan } from '../src/lib/store';
 import { space, useTheme } from '../src/theme';
 
@@ -75,6 +76,30 @@ export default function History() {
                   borderBottomColor: t.lineSoft,
                 }}
               >
+                {r.photo ? (
+                  <Image
+                    source={{ uri: photoUri(r.photo) }}
+                    style={{ width: 36, height: 48, borderRadius: 6, marginRight: space(3), backgroundColor: t.surfaceHigh }}
+                  />
+                ) : (
+                  // No photo: logged before photos were required, or sent to the bot.
+                  <View
+                    style={{
+                      width: 36,
+                      height: 48,
+                      borderRadius: 6,
+                      marginRight: space(3),
+                      borderWidth: 1,
+                      borderColor: t.lineSoft,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Text variant="micro" tone="faint">
+                      {r.proof === 'telegram' ? 'TG' : '\u2014'}
+                    </Text>
+                  </View>
+                )}
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text variant="bodyStrong" numeric>
                     {DAYS[new Date(`${r.date}T12:00:00`).getDay()]}, {MONTHS[Number(r.date.slice(5, 7)) - 1].slice(0, 3)}{' '}
