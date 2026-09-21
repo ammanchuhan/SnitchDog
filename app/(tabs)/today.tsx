@@ -9,6 +9,7 @@ import { DayStrip } from '../../src/components/DayStrip';
 import { Figure, Section } from '../../src/components/Figure';
 import { hourLabel } from '../../src/components/HourPicker';
 import { Text } from '../../src/components/Text';
+import { shareInvite } from '../../src/lib/invite';
 import { checkTarget } from '../../src/lib/limits';
 import { seeded } from '../../src/lib/seed';
 import { usePlan } from '../../src/lib/store';
@@ -105,6 +106,55 @@ export default function Home() {
         <Text variant="display" style={{ paddingTop: space(2), paddingBottom: space(6) }}>
           {greeting(plan.ownerName)}
         </Text>
+
+        {/* Without an accepted witness there is no deal, only a tracker. That's the one thing worth
+            putting above the numbers, and it goes away the moment they accept. */}
+        {!witness.linked && (
+          <View
+            style={{
+              borderRadius: radius.lg,
+              backgroundColor: t.ember,
+              padding: space(5),
+              gap: space(4),
+              marginBottom: space(8),
+            }}
+          >
+            <View style={{ gap: space(2) }}>
+              <Text variant="micro" tone="onEmber">
+                NOBODY IS WATCHING YET
+              </Text>
+              <Text variant="title" tone="onEmber">
+                {witness.name} hasn&rsquo;t accepted
+              </Text>
+              <Text variant="small" tone="onEmber">
+                Until they do, a missed week goes nowhere. Send the invite, then nudge them to tap it.
+              </Text>
+            </View>
+            <View style={{ flexDirection: 'row', gap: space(3), alignItems: 'center' }}>
+              <Pressable
+                onPress={() => shareInvite(plan)}
+                accessibilityRole="button"
+                style={{
+                  flex: 1,
+                  height: 48,
+                  borderRadius: radius.pill,
+                  backgroundColor: t.bg,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text variant="label" tone="ember">
+                  Send {witness.name} the invite
+                </Text>
+              </Pressable>
+              <Pressable onPress={() => router.push('/witness')} hitSlop={12} accessibilityRole="button">
+                <Text variant="label" tone="onEmber">
+                  Details ›
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
 
         {/* A target saved before the limits existed still has to be fixed, not quietly honoured. */}
         {targetProblem ? (
@@ -237,40 +287,36 @@ export default function Home() {
           </View>
         </Section>
 
-        {/* The witness is the deal, so they get a place on Home rather than inside settings.
-            Unaccepted is the one state worth shouting about: without them it's just a tracker. */}
-        <Section title="YOUR WITNESS">
-          <Pressable
-            onPress={() => router.push('/witness')}
-            accessibilityRole="button"
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              borderRadius: radius.md,
-              borderWidth: 1,
-              borderColor: witness.linked ? t.line : t.ember,
-              backgroundColor: witness.linked ? t.surface : t.emberSoft,
-              padding: space(4),
-            }}
-          >
-            <View style={{ flex: 1, gap: space(1) }}>
-              <Text variant="bodyStrong" tone={witness.linked ? 'default' : 'ember'}>
-                {witness.linked ? `${witness.name} is watching` : 'Nobody is watching yet'}
+        {/* Once they've accepted, the witness settles into a quiet card at the bottom. */}
+        {witness.linked && (
+          <Section title="YOUR WITNESS">
+            <Pressable
+              onPress={() => router.push('/witness')}
+              accessibilityRole="button"
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderRadius: radius.md,
+                borderWidth: 1,
+                borderColor: t.line,
+                backgroundColor: t.surface,
+                padding: space(4),
+              }}
+            >
+              <View style={{ flex: 1, gap: space(1) }}>
+                <Text variant="bodyStrong">{witness.name} is watching</Text>
+                <Text variant="small" tone="dim">
+                  {called === 0 ? 'Not called yet.' : `Called ${called} ${called === 1 ? 'time' : 'times'}.`} What they
+                  see, or pick someone else.
+                </Text>
+              </View>
+              <Text variant="heading" tone="faint">
+                ›
               </Text>
-              <Text variant="small" tone="dim">
-                {witness.linked
-                  ? called === 0
-                    ? 'Not called yet. What they see, the invite, or someone else.'
-                    : `Called ${called} ${called === 1 ? 'time' : 'times'}. What they see, the invite, or someone else.`
-                  : `${witness.name} hasn’t accepted. Until they do, this is just a tracker.`}
-              </Text>
-            </View>
-            <Text variant="heading" tone="faint">
-              ›
-            </Text>
-          </Pressable>
-        </Section>
+            </Pressable>
+          </Section>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

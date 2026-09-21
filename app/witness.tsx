@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { Alert, Pressable, Share, View } from 'react-native';
+import { Alert, Pressable, View } from 'react-native';
 
 import { Button } from '../src/components/Button';
 import { Card } from '../src/components/Card';
 import { Field } from '../src/components/Field';
 import { Screen } from '../src/components/Screen';
 import { Text } from '../src/components/Text';
-import { witnessInviteUrl } from '../src/lib/api';
 import { shortId } from '../src/lib/id';
+import { shareInvite } from '../src/lib/invite';
 import { useDismiss } from '../src/lib/nav';
 import { usePlan } from '../src/lib/store';
 import { escalationCount } from '../src/lib/types';
@@ -53,9 +53,6 @@ export default function WitnessScreen() {
     );
   }
   const { witness, ownerName, goal } = plan;
-  const url = witnessInviteUrl(witness.inviteToken);
-
-  const invite = `${witness.name} \u2014 I\u2019m using an app called Accountable to stay on top of training and weighing in, and I picked you as my witness. You don\u2019t install anything, and you\u2019ll only hear from it if I go quiet.\n\n${url}`;
 
   return (
     <Screen>
@@ -112,7 +109,7 @@ export default function WitnessScreen() {
           whether it has been accepted. */}
       <Button
         label={witness.linked ? 'Share the link again' : 'Share the invite'}
-        onPress={() => Share.share({ message: invite })}
+        onPress={() => shareInvite(plan)}
       />
       {!witness.linked && (
         <Text variant="small" tone="faint" center style={{ paddingTop: space(3) }}>
