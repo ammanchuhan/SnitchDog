@@ -191,8 +191,9 @@ export default function Setup() {
         return {
           lines: [
             'Now the part that makes this work.',
-            'Promises to yourself are easy to break quietly. So you’ll pick one person, your witness.',
-            'If you slip, I let them know, so someone who cares about you can check in. If you don’t, they never hear from me.',
+            'I’ll nudge you, and I’ll keep nudging. But I’m an AI. You can ignore me, and on a bad week you probably will.',
+            'Ignoring someone you know is much harder. People keep promises because somebody they care about would notice. So you’ll pick one person: your witness.',
+            'If you slip, I let them know, so they can check in. If you don’t, they never hear from me.',
           ],
           mood: 'determined',
         };
