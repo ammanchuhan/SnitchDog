@@ -39,6 +39,14 @@ SHEETS = {
         'mouth-half': (1025, 558, 100, 75),
         'mouth-o': (1218, 568, 45, 75),
     },
+    'ember-props.jpeg': {
+        'prop-scale': (295, 215, 180, 165, 'trim'),
+        'prop-phone': (700, 212, 110, 165, 'trim'),
+        'prop-dumbbell': (1087, 210, 205, 105, 'trim'),
+        'prop-plane': (275, 570, 205, 145, 'trim'),
+        'prop-clock': (700, 572, 145, 155, 'trim'),
+        'prop-sparks': (1120, 557, 180, 155, 'trim'),
+    },
 }
 SHEETS.update(json.load(open(os.path.join(OUT, 'sheets.json'))) if os.path.exists(os.path.join(OUT, 'sheets.json')) else {})
 
@@ -79,9 +87,12 @@ for sheet, boxes in SHEETS.items():
         if spec == 'trim':
             part = keyed.crop(keyed.getbbox())
         else:
-            cx, cy, hw, hh = spec
+            cx, cy, hw, hh = spec[:4]
             box = tuple(round(v * SCALE) for v in (cx - hw, cy - hh, cx + hw, cy + hh))
             part = keyed.crop(box)
+            if len(spec) > 4 and spec[4] == 'trim':
+                # Props aren't anchored to each other, so they can lose their padding.
+                part = part.crop(part.getbbox())
         parts[name] = {'w': part.width, 'h': part.height}
         # Parts are laid out in source pixels; @3x is the source size, @2x two thirds of it.
         part.save(os.path.join(OUT, f'{name}@3x.png'), optimize=True)

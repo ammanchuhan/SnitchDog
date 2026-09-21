@@ -51,6 +51,30 @@ export const PART_SIZE = {
   "body": {
     "w": 904,
     "h": 1350
+  },
+  "prop-scale": {
+    "w": 638,
+    "h": 582
+  },
+  "prop-phone": {
+    "w": 350,
+    "h": 596
+  },
+  "prop-dumbbell": {
+    "w": 742,
+    "h": 343
+  },
+  "prop-plane": {
+    "w": 736,
+    "h": 514
+  },
+  "prop-clock": {
+    "w": 492,
+    "h": 555
+  },
+  "prop-sparks": {
+    "w": 610,
+    "h": 565
   }
 } as const;
 
@@ -68,6 +92,12 @@ export const PART_SRC = {
   'mouth-o': require('../../assets/illustrations/rig/mouth-o.png'),
   'mouth-smile': require('../../assets/illustrations/rig/mouth-smile.png'),
   'mouth-yawn': require('../../assets/illustrations/rig/mouth-yawn.png'),
+  'prop-clock': require('../../assets/illustrations/rig/prop-clock.png'),
+  'prop-dumbbell': require('../../assets/illustrations/rig/prop-dumbbell.png'),
+  'prop-phone': require('../../assets/illustrations/rig/prop-phone.png'),
+  'prop-plane': require('../../assets/illustrations/rig/prop-plane.png'),
+  'prop-scale': require('../../assets/illustrations/rig/prop-scale.png'),
+  'prop-sparks': require('../../assets/illustrations/rig/prop-sparks.png'),
 } as const;
 
 export type PartName = keyof typeof PART_SRC;
