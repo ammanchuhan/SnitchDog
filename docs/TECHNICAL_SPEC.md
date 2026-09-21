@@ -456,6 +456,7 @@ users.
 | 2026-09-20 (rev 2) | The first week is pro-rated | Starting on a Saturday should not mean failing before you have done anything. Found by running the app on a Sunday. |
 | 2026-09-21 | Four tabs — Today, Progress, Coach, Plan — instead of one busy home | Home stacked seven things. Today now answers one question (what do I owe today?); browsing moved to its own tabs. Native iOS tab bar, so it reads as a phone app. |
 | 2026-09-21 | Three tabs — Analytics, Home (middle), Coach — with Plan pushed from Home | Home should show where you stand as well as what's due: the goal, the average, the bar, the week. Analytics is only for looking back (trend, month-by-month calendar with a per-month summary, weeks). Plan is settings, visited rarely, so it lost its tab. |
+| 2026-09-21 | The coach is Ember, a flame mascot, and the only character in the app | One voice for the morning texts, the chat and the illustrations, instead of a faceless coach plus a separate mascot. Ember is on the user's side: worried, never angry — the witness is the consequence. A flame-you-keep-alive framing was rejected as a guilt/streak machine. The chat lost its log-weight tool, since weigh-ins need a photo. |
 
 ---
 

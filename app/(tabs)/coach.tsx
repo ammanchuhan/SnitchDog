@@ -74,10 +74,15 @@ export default function Chat() {
             borderBottomColor: t.lineSoft,
           }}
         >
-          <Text variant="heading">Your coach</Text>
+          <View>
+            <Text variant="heading">Ember</Text>
+            <Text variant="small" tone="faint">
+              Your coach
+            </Text>
+          </View>
           <Pressable onPress={() => router.push('/memories')} hitSlop={12}>
             <Text variant="label" tone="faint">
-              What it remembers ›
+              What Ember remembers ›
             </Text>
           </Pressable>
         </View>
@@ -95,8 +100,8 @@ export default function Chat() {
             <View style={{ gap: space(3), paddingTop: space(6) }}>
               <Text variant="title">What&rsquo;s in the way?</Text>
               <Text variant="body" tone="dim">
-                Tell me what happened this week, or just give me this morning&rsquo;s number and
-                I&rsquo;ll log it. I remember what you tell me.
+                Tell me what happened this week, or what keeps getting in the way. I remember what you
+                tell me.
               </Text>
             </View>
           )}

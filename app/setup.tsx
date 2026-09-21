@@ -136,7 +136,8 @@ export default function Setup() {
                 when you don&rsquo;t.
               </Text>
               <Text variant="small" tone="faint" style={{ maxWidth: 320 }}>
-                A few questions first, so the plan fits your body and your week.
+                I&rsquo;m Ember, your coach. A few questions first, so the plan fits your body and your
+                week.
               </Text>
             </View>
           )}
