@@ -23,6 +23,9 @@ export function Screen({
         <ScrollView
           contentContainerStyle={[inner, { paddingBottom: space(10) }, style]}
           keyboardShouldPersistTaps="handled"
+          // iOS scrolls the focused field clear of the keyboard, so a field near the bottom of a
+          // screen (a new witness's name, say) isn't typed into blind.
+          automaticallyAdjustKeyboardInsets
           showsVerticalScrollIndicator={false}
         >
           {children}

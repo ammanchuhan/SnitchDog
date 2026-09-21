@@ -14,6 +14,7 @@ import { seeded } from '../../src/lib/seed';
 import { usePlan } from '../../src/lib/store';
 import {
   currentAverage,
+  escalationCount,
   previousAverage,
   progress,
   sessionFor,
@@ -23,7 +24,7 @@ import {
   weekStatus,
   weighInOn,
 } from '../../src/lib/types';
-import { space, useTheme } from '../../src/theme';
+import { radius, space, useTheme } from '../../src/theme';
 
 const clockTime = (iso?: string) => {
   if (!iso) return '';
@@ -68,6 +69,7 @@ export default function Home() {
   const remaining = Math.abs((average ?? goal.start) - goal.target);
   const toward = trend !== undefined && Math.sign(trend) === Math.sign(goal.target - goal.start);
   const targetProblem = checkTarget(goal.start, goal.target, goal.unit);
+  const called = escalationCount(plan);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }} edges={['top']}>
@@ -235,19 +237,40 @@ export default function Home() {
           </View>
         </Section>
 
-        {/* The one thing worth interrupting for: without an accepted witness, there's no deal. */}
-        {!witness.linked && (
-          <Pressable onPress={() => router.push('/witness')} style={{ marginTop: space(8) }}>
-            <Card style={{ borderColor: t.ember, gap: space(2) }}>
-              <Text variant="bodyStrong" tone="ember">
-                Nobody is watching yet
+        {/* The witness is the deal, so they get a place on Home rather than inside settings.
+            Unaccepted is the one state worth shouting about: without them it's just a tracker. */}
+        <Section title="YOUR WITNESS">
+          <Pressable
+            onPress={() => router.push('/witness')}
+            accessibilityRole="button"
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderRadius: radius.md,
+              borderWidth: 1,
+              borderColor: witness.linked ? t.line : t.ember,
+              backgroundColor: witness.linked ? t.surface : t.emberSoft,
+              padding: space(4),
+            }}
+          >
+            <View style={{ flex: 1, gap: space(1) }}>
+              <Text variant="bodyStrong" tone={witness.linked ? 'default' : 'ember'}>
+                {witness.linked ? `${witness.name} is watching` : 'Nobody is watching yet'}
               </Text>
               <Text variant="small" tone="dim">
-                {witness.name} hasn&rsquo;t accepted. Until they do, this is just a tracker.
+                {witness.linked
+                  ? called === 0
+                    ? 'Not called yet. What they see, the invite, or someone else.'
+                    : `Called ${called} ${called === 1 ? 'time' : 'times'}. What they see, the invite, or someone else.`
+                  : `${witness.name} hasn’t accepted. Until they do, this is just a tracker.`}
               </Text>
-            </Card>
+            </View>
+            <Text variant="heading" tone="faint">
+              ›
+            </Text>
           </Pressable>
-        )}
+        </Section>
       </ScrollView>
     </SafeAreaView>
   );

@@ -10,7 +10,6 @@ import { RoutineEditor } from '../src/components/RoutineEditor';
 import { Screen } from '../src/components/Screen';
 import { Text } from '../src/components/Text';
 import { deletePlan, ownerLinkUrl } from '../src/lib/api';
-import { shortId } from '../src/lib/id';
 import { checkTarget, convert } from '../src/lib/limits';
 import { usePlan } from '../src/lib/store';
 import { useDismiss } from '../src/lib/nav';
@@ -40,30 +39,20 @@ function PlanForm() {
   const [unit, setUnit] = useState<'lb' | 'kg'>(plan?.goal.unit ?? 'lb');
   const [wakeHour, setWakeHour] = useState(plan?.goal.wakeHour ?? 7);
   const [routine, setRoutine] = useState<RoutineSlot[]>(plan?.routine ?? []);
-  const [witnessName, setWitnessName] = useState(plan?.witness.name ?? '');
   const [saved, setSaved] = useState(false);
   // Any edit after a save means there's something to save again.
-  useEffect(() => setSaved(false), [target, unit, wakeHour, routine, witnessName]);
+  useEffect(() => setSaved(false), [target, unit, wakeHour, routine]);
 
   if (!plan) return null;
-  const witnessChanged = witnessName.trim() !== plan.witness.name;
   // The start stays in the unit it was recorded in; compare like with like.
   const targetProblem = checkTarget(convert(plan.goal.start, plan.goal.unit, unit), Number(target), unit);
-  const valid = Number(target) > 0 && !targetProblem && witnessName.trim().length > 0;
+  const valid = Number(target) > 0 && !targetProblem;
 
   async function save() {
     if (!plan) return;
     await update({
       goal: { ...plan.goal, target: Number(target), unit, wakeHour },
       routine: routine.filter((s) => s.days.length > 0 && s.label.trim().length > 0),
-      // A new witness is a new deal: new invite, nobody watching, and the count starts again.
-      ...(witnessChanged
-        ? {
-            witness: { name: witnessName.trim(), linked: false, inviteToken: shortId(16) },
-            escalatedWeeks: [],
-            sessions: plan.sessions.map((s) => ({ ...s, escalatedAt: undefined })),
-          }
-        : {}),
     });
     setSaved(true);
   }
@@ -136,42 +125,6 @@ function PlanForm() {
 
         <Section title="ROUTINE">
           <RoutineEditor routine={routine} onChange={setRoutine} />
-        </Section>
-
-        <Section title="WITNESS">
-          <Field label="Watching you" value={witnessName} onChangeText={setWitnessName} autoCapitalize="words" />
-          {witnessChanged ? (
-            <Text variant="small" tone="ember">
-              New witness, new deal: {witnessName.trim() || 'they'} will need to accept, and your
-              told-on count goes back to zero.
-            </Text>
-          ) : (
-            <Pressable
-              onPress={() => router.push('/witness')}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                borderRadius: radius.md,
-                borderWidth: 1,
-                borderColor: plan.witness.linked ? t.line : t.ember,
-                backgroundColor: plan.witness.linked ? t.surface : t.emberSoft,
-                padding: space(4),
-              }}
-            >
-              <View style={{ flex: 1, gap: space(1) }}>
-                <Text variant="bodyStrong" tone={plan.witness.linked ? 'default' : 'ember'}>
-                  {plan.witness.linked ? `${plan.witness.name} is watching` : `${plan.witness.name} hasn't accepted`}
-                </Text>
-                <Text variant="small" tone="dim">
-                  {plan.witness.linked ? 'What they see, and how to change it' : 'Share the invite again'}
-                </Text>
-              </View>
-              <Text variant="heading" tone="faint">
-                ›
-              </Text>
-            </Pressable>
-          )}
         </Section>
 
         <View style={{ gap: space(3), paddingTop: space(4), paddingBottom: space(10) }}>
