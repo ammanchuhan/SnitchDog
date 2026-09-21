@@ -52,196 +52,55 @@ anything urgent, deep green for "done", on warm paper white.
 
 ---
 
-## Everything to generate
+## Everything to generate: Ember as parts
 
-Three batches, in this order. **Upload `accountable-ember-sheet.png` as the reference for batches A
-and C.** Batch B are *edits*: upload the named image from batch A as the base instead.
+Ember is **assembled in code from parts**, not generated pose by pose. Image models drift: the
+same character never comes back quite the same twice. So each part is generated once, and every
+pose (happy, proud, worried, waving, lifting a dumbbell) is the same body with different eyes,
+mouth, arms and legs placed on it. That keeps Ember identical everywhere, makes blinking a swap of
+the eyes, and makes the wave smooth, because the arm rotates at the shoulder rather than jumping
+between two drawings.
 
-Generate at the highest resolution the tool offers. Batch A and B are **portrait 3:4**; batch C is
-**square**, except the coach avatar. Save each to Downloads with the file name shown.
+Five images. **Upload `accountable-ember-sheet.png` (the model sheet) as the reference for every
+one.** Highest resolution the tool offers. File names don't matter; they're recognised on sight.
 
-| Batch | What | Count |
-|---|---|---|
-| A | Ember's seven moods, full body, for sign-up and Home | 7 |
-| B | Animation frames: five blinks and one second wave position | 6 |
-| C | Scenes around the app: scale, camera, workout, done, witness, invite, coach avatar (+ its blink) | 8 |
+| # | Part | Aspect | What it's for |
+|---|---|---|---|
+| P1 | The body, no face or limbs | 3:4 | Every pose. Generate this at the highest resolution; it's shown largest. |
+| P2 | Eyes and mouths | 4:3 | Expressions and blinking. |
+| P3 | Arms and legs | 4:3 | Poses; the wave rotates the raised arm. |
+| P4 | Props: scale, phone, dumbbell, paper plane, alarm clock, sparks | 4:3 | Scenes on Home, the weigh-in and the invite. |
+| P5 | The witness: a friend with a phone | 3:4 | The witness screen, with Ember on their shoulder. |
 
-**How the animation works.** The head bop (a gentle nod with a little bounce) is done in code, so
-it works on every image. A blink is a swap to a closed-eyes frame for about 150 ms every few
-seconds; a wave alternates the two hello frames. Those swaps only look right if the frames line
-up exactly, which is why batch B edits batch A instead of generating fresh. `laugh` and `sleepy`
-already have closed eyes, so they don't need a blink frame.
+Parts on a sheet are cut apart, keyed and scaled to match the body, then placed from anchor
+points (where the eyes sit, where each shoulder and hip is) recorded once in the rig.
 
----
-
-## Batch A — Ember's moods (3:4, sheet as reference)
-
-### A1. `accountable-ember-hello.png`
-
-*Where it goes:* First sign-up screen. Also waves (see B6).
+### P1. `accountable-ember-body.png` (3:4 portrait)
 
 ```
-A handmade cut-paper illustration with felt-tip marker details: every shape is cut from matte coloured paper with slightly uneven scissor edges and visible paper fibre texture, layers cast small soft paper shadows on each other, and faces, hands and fine details are drawn in loose black felt-tip marker, printed slightly off-register. The character is Ember, exactly as in the reference sheet: a small, plump teardrop-shaped flame about the size of a coffee mug, cut from ember orange #E8552F paper with a smaller tangerine #FF8A5C inner flame layered on top, a soft three-point flickering tip, two dot eyes and a small curved mouth drawn in black felt-tip marker, and short stubby marker-line arms and legs with round mitten hands. Ember standing facing forward, giving a big friendly wave with its right mitten hand raised high beside its head, the other arm relaxed at its side, a warm open smile. Ember alone, full body from flame tip to feet, centered, filling about 85% of the frame height, no props, no ground line, nothing else in the frame. Palette limited to: ember orange #E8552F, tangerine #FF8A5C, deep green #157F55, butter yellow #F6C945, soft sky blue #9CC3E6, warm paper white #FBFAF8, and black #16150F for marker lines only. Place the scene directly on a perfectly flat, solid magenta #FF00FF background with no gradient, no paper patch, no floor and no shadow on the background, with generous padding on every side, so the magenta can be cleanly removed. Nothing in the scene is magenta. No text, no letters, no numbers, no logos anywhere. Warm picture-book charm with grown-up restraint. Not 3D, not glossy, not flat vector art.
+A handmade cut-paper illustration with felt-tip marker details: every shape is cut from matte coloured paper with slightly uneven scissor edges and visible paper fibre texture, layers cast small soft paper shadows on each other, and faces, hands and fine details are drawn in loose black felt-tip marker, printed slightly off-register. Match the reference sheet exactly: the same paper colours, paper texture, marker line weight and proportions as the Ember character in it. Ember's body with every detail left off: only the plump teardrop-shaped flame of ember orange #E8552F paper with the smaller tangerine #FF8A5C inner flame layered on top and the soft three-point flickering tip. The inner flame is completely blank: no eyes, no mouth, no face at all. No arms, no legs, no hands. The body alone, upright, centered, filling about 80% of the frame height. Palette limited to: ember orange #E8552F, tangerine #FF8A5C, deep green #157F55, butter yellow #F6C945, soft sky blue #9CC3E6, warm paper white #FBFAF8, and black #16150F for marker lines only. Place the scene directly on a perfectly flat, solid magenta #FF00FF background with no gradient, no paper patch, no floor and no shadow on the background, with generous padding on every side, so the magenta can be cleanly removed. Nothing in the scene is magenta. No text, no letters, no numbers, no logos anywhere. No face on the body. Warm picture-book charm with grown-up restraint. Not 3D, not glossy, not flat vector art.
 ```
 
-### A2. `accountable-ember-happy.png`
-
-*Where it goes:* Most sign-up questions.
+### P2. `accountable-ember-faces.png` (4:3 landscape)
 
 ```
-A handmade cut-paper illustration with felt-tip marker details: every shape is cut from matte coloured paper with slightly uneven scissor edges and visible paper fibre texture, layers cast small soft paper shadows on each other, and faces, hands and fine details are drawn in loose black felt-tip marker, printed slightly off-register. The character is Ember, exactly as in the reference sheet: a small, plump teardrop-shaped flame about the size of a coffee mug, cut from ember orange #E8552F paper with a smaller tangerine #FF8A5C inner flame layered on top, a soft three-point flickering tip, two dot eyes and a small curved mouth drawn in black felt-tip marker, and short stubby marker-line arms and legs with round mitten hands. Ember standing facing forward, arms relaxed at its sides, a calm, friendly closed-mouth smile, attentive and listening. Ember alone, full body from flame tip to feet, centered, filling about 85% of the frame height, no props, no ground line, nothing else in the frame. Palette limited to: ember orange #E8552F, tangerine #FF8A5C, deep green #157F55, butter yellow #F6C945, soft sky blue #9CC3E6, warm paper white #FBFAF8, and black #16150F for marker lines only. Place the scene directly on a perfectly flat, solid magenta #FF00FF background with no gradient, no paper patch, no floor and no shadow on the background, with generous padding on every side, so the magenta can be cleanly removed. Nothing in the scene is magenta. No text, no letters, no numbers, no logos anywhere. Warm picture-book charm with grown-up restraint. Not 3D, not glossy, not flat vector art.
+A handmade cut-paper illustration with felt-tip marker details: every shape is cut from matte coloured paper with slightly uneven scissor edges and visible paper fibre texture, layers cast small soft paper shadows on each other, and faces, hands and fine details are drawn in loose black felt-tip marker, printed slightly off-register. Match the reference sheet exactly: the same paper colours, paper texture, marker line weight and proportions as the Ember character in it. A sheet of separate facial features for Ember, drawn only in black felt-tip marker with no paper and no skin behind them. Top row, six pairs of eyes, each pair spaced as they sit on Ember's face: two open dot eyes; two closed eyes as short gently curved lines, mid-blink; two happy squeezed-shut arcs; two dot eyes with small worried eyebrows slanting up in the middle; two dot eyes with one eyebrow slightly raised, determined; two sleepy drooping closed eyes. Bottom row, six mouths: a small curved smile; a big open laughing mouth filled black; a small frown; a small yawning oval filled black; a confident lopsided half-smile; a small round surprised 'o'. Two neat rows, evenly spaced, each feature small and clearly separated. Every part is separate, with clear magenta space between all of them: nothing touches or overlaps, so each can be cut out on its own. All parts are drawn at the same scale as each other. Palette limited to: ember orange #E8552F, tangerine #FF8A5C, deep green #157F55, butter yellow #F6C945, soft sky blue #9CC3E6, warm paper white #FBFAF8, and black #16150F for marker lines only. Place the scene directly on a perfectly flat, solid magenta #FF00FF background with no gradient, no paper patch, no floor and no shadow on the background, with generous padding on every side, so the magenta can be cleanly removed. Nothing in the scene is magenta. No text, no letters, no numbers, no logos anywhere. Warm picture-book charm with grown-up restraint. Not 3D, not glossy, not flat vector art.
 ```
 
-### A3. `accountable-ember-proud.png`
-
-*Where it goes:* “Here’s how it works”, the plan, a good target.
+### P3. `accountable-ember-limbs.png` (4:3 landscape)
 
 ```
-A handmade cut-paper illustration with felt-tip marker details: every shape is cut from matte coloured paper with slightly uneven scissor edges and visible paper fibre texture, layers cast small soft paper shadows on each other, and faces, hands and fine details are drawn in loose black felt-tip marker, printed slightly off-register. The character is Ember, exactly as in the reference sheet: a small, plump teardrop-shaped flame about the size of a coffee mug, cut from ember orange #E8552F paper with a smaller tangerine #FF8A5C inner flame layered on top, a soft three-point flickering tip, two dot eyes and a small curved mouth drawn in black felt-tip marker, and short stubby marker-line arms and legs with round mitten hands. Ember standing tall, both arms thrown up in celebration, a big proud smile, its flame tip standing a little taller than usual. Ember alone, full body from flame tip to feet, centered, filling about 85% of the frame height, no props, no ground line, nothing else in the frame. Palette limited to: ember orange #E8552F, tangerine #FF8A5C, deep green #157F55, butter yellow #F6C945, soft sky blue #9CC3E6, warm paper white #FBFAF8, and black #16150F for marker lines only. Place the scene directly on a perfectly flat, solid magenta #FF00FF background with no gradient, no paper patch, no floor and no shadow on the background, with generous padding on every side, so the magenta can be cleanly removed. Nothing in the scene is magenta. No text, no letters, no numbers, no logos anywhere. Warm picture-book charm with grown-up restraint. Not 3D, not glossy, not flat vector art.
+A handmade cut-paper illustration with felt-tip marker details: every shape is cut from matte coloured paper with slightly uneven scissor edges and visible paper fibre texture, layers cast small soft paper shadows on each other, and faces, hands and fine details are drawn in loose black felt-tip marker, printed slightly off-register. Match the reference sheet exactly: the same paper colours, paper texture, marker line weight and proportions as the Ember character in it. A sheet of separate limbs for Ember, each drawn as a single black felt-tip marker line with a round mitten hand of ember orange #E8552F paper outlined in marker, or a small rounded marker foot. All are Ember's right-side limbs. Top row, four arms, each starting from a plain shoulder end: an arm hanging relaxed straight down; an arm raised straight up with the open mitten facing forward, as in a wave; an arm bent at the elbow with the mitten as a fist resting on a hip; an arm raised up and out at an angle in celebration. Bottom row, three legs: a short leg standing straight with a small foot; a leg bent and kicked up behind, as in a happy jump; a short leg stepping forward mid-stride. Two neat rows, evenly spaced, every limb separate with its shoulder or hip end clearly visible. Every part is separate, with clear magenta space between all of them: nothing touches or overlaps, so each can be cut out on its own. All parts are drawn at the same scale as each other. Palette limited to: ember orange #E8552F, tangerine #FF8A5C, deep green #157F55, butter yellow #F6C945, soft sky blue #9CC3E6, warm paper white #FBFAF8, and black #16150F for marker lines only. Place the scene directly on a perfectly flat, solid magenta #FF00FF background with no gradient, no paper patch, no floor and no shadow on the background, with generous padding on every side, so the magenta can be cleanly removed. Nothing in the scene is magenta. No text, no letters, no numbers, no logos anywhere. Warm picture-book charm with grown-up restraint. Not 3D, not glossy, not flat vector art.
 ```
 
-### A4. `accountable-ember-laugh.png`
-
-*Where it goes:* Reacting to a joke or a good answer.
+### P4. `accountable-ember-props.png` (4:3 landscape)
 
 ```
-A handmade cut-paper illustration with felt-tip marker details: every shape is cut from matte coloured paper with slightly uneven scissor edges and visible paper fibre texture, layers cast small soft paper shadows on each other, and faces, hands and fine details are drawn in loose black felt-tip marker, printed slightly off-register. The character is Ember, exactly as in the reference sheet: a small, plump teardrop-shaped flame about the size of a coffee mug, cut from ember orange #E8552F paper with a smaller tangerine #FF8A5C inner flame layered on top, a soft three-point flickering tip, two dot eyes and a small curved mouth drawn in black felt-tip marker, and short stubby marker-line arms and legs with round mitten hands. Ember mid-laugh, eyes squeezed into happy arcs, mouth wide open in a laugh, both arms up, one foot kicked up off the ground. Ember alone, full body from flame tip to feet, centered, filling about 85% of the frame height, no props, no ground line, nothing else in the frame. Palette limited to: ember orange #E8552F, tangerine #FF8A5C, deep green #157F55, butter yellow #F6C945, soft sky blue #9CC3E6, warm paper white #FBFAF8, and black #16150F for marker lines only. Place the scene directly on a perfectly flat, solid magenta #FF00FF background with no gradient, no paper patch, no floor and no shadow on the background, with generous padding on every side, so the magenta can be cleanly removed. Nothing in the scene is magenta. No text, no letters, no numbers, no logos anywhere. Warm picture-book charm with grown-up restraint. Not 3D, not glossy, not flat vector art.
+A handmade cut-paper illustration with felt-tip marker details: every shape is cut from matte coloured paper with slightly uneven scissor edges and visible paper fibre texture, layers cast small soft paper shadows on each other, and faces, hands and fine details are drawn in loose black felt-tip marker, printed slightly off-register. Match the reference sheet's paper colours, paper texture and marker line weight exactly. A sheet of separate cut-paper props, with no character in it: a small bathroom scale, soft sky blue with a warm paper white top and a blank butter yellow display window; a smartphone, deep green; a small hexagonal dumbbell, deep green with black marker grips; a folded paper airplane in warm paper white; a round twin-bell alarm clock, soft sky blue with a warm paper white face and black marker hands; a ring of small butter yellow paper sparks. Two neat rows, evenly spaced, each prop about the size it would be next to Ember, who is about the size of a coffee mug. Every part is separate, with clear magenta space between all of them: nothing touches or overlaps, so each can be cut out on its own. All parts are drawn at the same scale as each other. Palette limited to: ember orange #E8552F, tangerine #FF8A5C, deep green #157F55, butter yellow #F6C945, soft sky blue #9CC3E6, warm paper white #FBFAF8, and black #16150F for marker lines only. Place the scene directly on a perfectly flat, solid magenta #FF00FF background with no gradient, no paper patch, no floor and no shadow on the background, with generous padding on every side, so the magenta can be cleanly removed. Nothing in the scene is magenta. No text, no letters, no numbers, no logos anywhere. The scale display and phone screen are blank; the clock face has no numerals. Warm picture-book charm with grown-up restraint. Not 3D, not glossy, not flat vector art.
 ```
 
-### A5. `accountable-ember-worried.png`
-
-*Where it goes:* When an answer won’t work; a week slipping on Home.
+### P5. `accountable-ember-friend.png` (3:4 portrait)
 
 ```
-A handmade cut-paper illustration with felt-tip marker details: every shape is cut from matte coloured paper with slightly uneven scissor edges and visible paper fibre texture, layers cast small soft paper shadows on each other, and faces, hands and fine details are drawn in loose black felt-tip marker, printed slightly off-register. The character is Ember, exactly as in the reference sheet: a small, plump teardrop-shaped flame about the size of a coffee mug, cut from ember orange #E8552F paper with a smaller tangerine #FF8A5C inner flame layered on top, a soft three-point flickering tip, two dot eyes and a small curved mouth drawn in black felt-tip marker, and short stubby marker-line arms and legs with round mitten hands. Ember standing a little hunched, small worried marker eyebrows, a small frown, hands held together in front of it, its flame slightly dimmer and smaller than usual. Ember alone, full body from flame tip to feet, centered, filling about 85% of the frame height, no props, no ground line, nothing else in the frame. Palette limited to: ember orange #E8552F, tangerine #FF8A5C, deep green #157F55, butter yellow #F6C945, soft sky blue #9CC3E6, warm paper white #FBFAF8, and black #16150F for marker lines only. Place the scene directly on a perfectly flat, solid magenta #FF00FF background with no gradient, no paper patch, no floor and no shadow on the background, with generous padding on every side, so the magenta can be cleanly removed. Nothing in the scene is magenta. No text, no letters, no numbers, no logos anywhere. Warm picture-book charm with grown-up restraint. Not 3D, not glossy, not flat vector art.
+A handmade cut-paper illustration with felt-tip marker details: every shape is cut from matte coloured paper with slightly uneven scissor edges and visible paper fibre texture, layers cast small soft paper shadows on each other, and faces, hands and fine details are drawn in loose black felt-tip marker, printed slightly off-register. Match the reference sheet's paper colours, paper texture and marker line weight exactly. A single friendly person seen from the chest up, a simple cut-paper figure with a featureless face and simple cut-paper hair, wearing a deep green sweater, holding a soft sky blue phone at chest height and looking down at it, with one shoulder turned slightly toward the viewer so something could sit on it. The person centered, filling about 85% of the frame. Palette limited to: ember orange #E8552F, tangerine #FF8A5C, deep green #157F55, butter yellow #F6C945, soft sky blue #9CC3E6, warm paper white #FBFAF8, and black #16150F for marker lines only. Place the scene directly on a perfectly flat, solid magenta #FF00FF background with no gradient, no paper patch, no floor and no shadow on the background, with generous padding on every side, so the magenta can be cleanly removed. Nothing in the scene is magenta. No text, no letters, no numbers, no logos anywhere. The phone screen is blank. Warm picture-book charm with grown-up restraint. Not 3D, not glossy, not flat vector art.
 ```
-
-### A6. `accountable-ember-sleepy.png`
-
-*Where it goes:* “When do you get up?”; rest days on Home.
-
-```
-A handmade cut-paper illustration with felt-tip marker details: every shape is cut from matte coloured paper with slightly uneven scissor edges and visible paper fibre texture, layers cast small soft paper shadows on each other, and faces, hands and fine details are drawn in loose black felt-tip marker, printed slightly off-register. The character is Ember, exactly as in the reference sheet: a small, plump teardrop-shaped flame about the size of a coffee mug, cut from ember orange #E8552F paper with a smaller tangerine #FF8A5C inner flame layered on top, a soft three-point flickering tip, two dot eyes and a small curved mouth drawn in black felt-tip marker, and short stubby marker-line arms and legs with round mitten hands. Ember standing, eyes closed in two sleepy curves, mid-yawn with a small open mouth, one mitten hand rubbing an eye, its flame drooping a little. Ember alone, full body from flame tip to feet, centered, filling about 85% of the frame height, no props, no ground line, nothing else in the frame. Palette limited to: ember orange #E8552F, tangerine #FF8A5C, deep green #157F55, butter yellow #F6C945, soft sky blue #9CC3E6, warm paper white #FBFAF8, and black #16150F for marker lines only. Place the scene directly on a perfectly flat, solid magenta #FF00FF background with no gradient, no paper patch, no floor and no shadow on the background, with generous padding on every side, so the magenta can be cleanly removed. Nothing in the scene is magenta. No text, no letters, no numbers, no logos anywhere. Warm picture-book charm with grown-up restraint. Not 3D, not glossy, not flat vector art.
-```
-
-### A7. `accountable-ember-determined.png`
-
-*Where it goes:* Commitment, the witness, the deal.
-
-```
-A handmade cut-paper illustration with felt-tip marker details: every shape is cut from matte coloured paper with slightly uneven scissor edges and visible paper fibre texture, layers cast small soft paper shadows on each other, and faces, hands and fine details are drawn in loose black felt-tip marker, printed slightly off-register. The character is Ember, exactly as in the reference sheet: a small, plump teardrop-shaped flame about the size of a coffee mug, cut from ember orange #E8552F paper with a smaller tangerine #FF8A5C inner flame layered on top, a soft three-point flickering tip, two dot eyes and a small curved mouth drawn in black felt-tip marker, and short stubby marker-line arms and legs with round mitten hands. Ember standing firmly with both fists on its hips, a confident determined half-smile and one slightly raised marker eyebrow, its flame blazing upright. Ember alone, full body from flame tip to feet, centered, filling about 85% of the frame height, no props, no ground line, nothing else in the frame. Palette limited to: ember orange #E8552F, tangerine #FF8A5C, deep green #157F55, butter yellow #F6C945, soft sky blue #9CC3E6, warm paper white #FBFAF8, and black #16150F for marker lines only. Place the scene directly on a perfectly flat, solid magenta #FF00FF background with no gradient, no paper patch, no floor and no shadow on the background, with generous padding on every side, so the magenta can be cleanly removed. Nothing in the scene is magenta. No text, no letters, no numbers, no logos anywhere. Warm picture-book charm with grown-up restraint. Not 3D, not glossy, not flat vector art.
-```
-
----
-
-## Batch B — animation frames (3:4, edits: upload the batch A image named in each)
-
-### B1. `accountable-ember-hello-blink.png` — base: `accountable-ember-hello.png` (A1)
-
-```
-Using the uploaded image as the base, edit only Ember's eyes: replace the two open dot eyes with two short, gently curved closed-eye lines in the same black felt-tip marker, as if caught mid-blink. Keep everything else exactly identical: the same pose, the same size and position in the frame, the same colours, the same paper texture and shadows, and the same flat magenta #FF00FF background. The two images must line up perfectly when laid on top of each other.
-```
-
-### B2. `accountable-ember-happy-blink.png` — base: `accountable-ember-happy.png` (A2)
-
-```
-Using the uploaded image as the base, edit only Ember's eyes: replace the two open dot eyes with two short, gently curved closed-eye lines in the same black felt-tip marker, as if caught mid-blink. Keep everything else exactly identical: the same pose, the same size and position in the frame, the same colours, the same paper texture and shadows, and the same flat magenta #FF00FF background. The two images must line up perfectly when laid on top of each other.
-```
-
-### B3. `accountable-ember-proud-blink.png` — base: `accountable-ember-proud.png` (A3)
-
-```
-Using the uploaded image as the base, edit only Ember's eyes: replace the two open dot eyes with two short, gently curved closed-eye lines in the same black felt-tip marker, as if caught mid-blink. Keep everything else exactly identical: the same pose, the same size and position in the frame, the same colours, the same paper texture and shadows, and the same flat magenta #FF00FF background. The two images must line up perfectly when laid on top of each other.
-```
-
-### B4. `accountable-ember-worried-blink.png` — base: `accountable-ember-worried.png` (A5)
-
-```
-Using the uploaded image as the base, edit only Ember's eyes, keeping its worried eyebrows exactly as they are: replace the two open dot eyes with two short, gently curved closed-eye lines in the same black felt-tip marker, as if caught mid-blink. Keep everything else exactly identical: the same pose, the same size and position in the frame, the same colours, the same paper texture and shadows, and the same flat magenta #FF00FF background. The two images must line up perfectly when laid on top of each other.
-```
-
-### B5. `accountable-ember-determined-blink.png` — base: `accountable-ember-determined.png` (A7)
-
-```
-Using the uploaded image as the base, edit only Ember's eyes, keeping its raised eyebrow exactly as it is: replace the two open dot eyes with two short, gently curved closed-eye lines in the same black felt-tip marker, as if caught mid-blink. Keep everything else exactly identical: the same pose, the same size and position in the frame, the same colours, the same paper texture and shadows, and the same flat magenta #FF00FF background. The two images must line up perfectly when laid on top of each other.
-```
-
-### B6. `accountable-ember-hello-wave.png` — base: `accountable-ember-hello.png` (A1)
-
-```
-Using the uploaded image as the base, edit only Ember's raised waving arm and mitten: swing it about 35 degrees further outward, away from the head, as the other half of a wave, with the mitten open. Keep everything else exactly identical: the same pose, the same size and position in the frame, the same colours, the same paper texture and shadows, and the same flat magenta #FF00FF background. The two images must line up perfectly when laid on top of each other.
-```
-
----
-
-## Batch C — scenes around the app (square, sheet as reference)
-
-### C1. `accountable-ember-scale.png`
-
-*Where it goes:* Home › the weigh-in card, and the top of the weigh-in screen.
-
-```
-A handmade cut-paper illustration with felt-tip marker details: every shape is cut from matte coloured paper with slightly uneven scissor edges and visible paper fibre texture, layers cast small soft paper shadows on each other, and faces, hands and fine details are drawn in loose black felt-tip marker, printed slightly off-register. The character is Ember, exactly as in the reference sheet: a small, plump teardrop-shaped flame about the size of a coffee mug, cut from ember orange #E8552F paper with a smaller tangerine #FF8A5C inner flame layered on top, a soft three-point flickering tip, two dot eyes and a small curved mouth drawn in black felt-tip marker, and short stubby marker-line arms and legs with round mitten hands. Ember standing on a small bathroom scale, leaning forward to peek down at the display. The scale is soft sky blue with a warm paper white top; its display is a blank butter yellow window. Ember and the scale centered, filling about 85% of the frame height. Palette limited to: ember orange #E8552F, tangerine #FF8A5C, deep green #157F55, butter yellow #F6C945, soft sky blue #9CC3E6, warm paper white #FBFAF8, and black #16150F for marker lines only. Place the scene directly on a perfectly flat, solid magenta #FF00FF background with no gradient, no paper patch, no floor and no shadow on the background, with generous padding on every side, so the magenta can be cleanly removed. Nothing in the scene is magenta. No text, no letters, no numbers, no logos anywhere. The scale display is completely blank: no digits. Warm picture-book charm with grown-up restraint. Not 3D, not glossy, not flat vector art.
-```
-
-### C2. `accountable-ember-camera.png`
-
-*Where it goes:* Weigh-in screen › “Photograph the scale”.
-
-```
-A handmade cut-paper illustration with felt-tip marker details: every shape is cut from matte coloured paper with slightly uneven scissor edges and visible paper fibre texture, layers cast small soft paper shadows on each other, and faces, hands and fine details are drawn in loose black felt-tip marker, printed slightly off-register. The character is Ember, exactly as in the reference sheet: a small, plump teardrop-shaped flame about the size of a coffee mug, cut from ember orange #E8552F paper with a smaller tangerine #FF8A5C inner flame layered on top, a soft three-point flickering tip, two dot eyes and a small curved mouth drawn in black felt-tip marker, and short stubby marker-line arms and legs with round mitten hands. Ember holding a phone up with both hands, taking a photo of a bathroom scale on the ground in front of it, one eye squinting in concentration. The phone is deep green; the scale is soft sky blue with a blank butter yellow display. Ember on the right, the scale lower left, together filling about 85% of the frame. Palette limited to: ember orange #E8552F, tangerine #FF8A5C, deep green #157F55, butter yellow #F6C945, soft sky blue #9CC3E6, warm paper white #FBFAF8, and black #16150F for marker lines only. Place the scene directly on a perfectly flat, solid magenta #FF00FF background with no gradient, no paper patch, no floor and no shadow on the background, with generous padding on every side, so the magenta can be cleanly removed. Nothing in the scene is magenta. No text, no letters, no numbers, no logos anywhere. The phone screen and the scale display are blank: no digits, no interface. Warm picture-book charm with grown-up restraint. Not 3D, not glossy, not flat vector art.
-```
-
-### C3. `accountable-ember-workout.png`
-
-*Where it goes:* Home › workout cards.
-
-```
-A handmade cut-paper illustration with felt-tip marker details: every shape is cut from matte coloured paper with slightly uneven scissor edges and visible paper fibre texture, layers cast small soft paper shadows on each other, and faces, hands and fine details are drawn in loose black felt-tip marker, printed slightly off-register. The character is Ember, exactly as in the reference sheet: a small, plump teardrop-shaped flame about the size of a coffee mug, cut from ember orange #E8552F paper with a smaller tangerine #FF8A5C inner flame layered on top, a soft three-point flickering tip, two dot eyes and a small curved mouth drawn in black felt-tip marker, and short stubby marker-line arms and legs with round mitten hands. Ember lifting a tiny dumbbell over its head with both hands, determined expression, legs braced. The dumbbell is deep green with black marker grips. Ember centered, full body, filling about 85% of the frame height. Palette limited to: ember orange #E8552F, tangerine #FF8A5C, deep green #157F55, butter yellow #F6C945, soft sky blue #9CC3E6, warm paper white #FBFAF8, and black #16150F for marker lines only. Place the scene directly on a perfectly flat, solid magenta #FF00FF background with no gradient, no paper patch, no floor and no shadow on the background, with generous padding on every side, so the magenta can be cleanly removed. Nothing in the scene is magenta. No text, no letters, no numbers, no logos anywhere. Warm picture-book charm with grown-up restraint. Not 3D, not glossy, not flat vector art.
-```
-
-### C4. `accountable-ember-done.png`
-
-*Where it goes:* Home › “That’s today. Nothing else is due.”
-
-```
-A handmade cut-paper illustration with felt-tip marker details: every shape is cut from matte coloured paper with slightly uneven scissor edges and visible paper fibre texture, layers cast small soft paper shadows on each other, and faces, hands and fine details are drawn in loose black felt-tip marker, printed slightly off-register. The character is Ember, exactly as in the reference sheet: a small, plump teardrop-shaped flame about the size of a coffee mug, cut from ember orange #E8552F paper with a smaller tangerine #FF8A5C inner flame layered on top, a soft three-point flickering tip, two dot eyes and a small curved mouth drawn in black felt-tip marker, and short stubby marker-line arms and legs with round mitten hands. Ember glowing extra bright and proud with both arms thrown up, a ring of small butter yellow paper sparks around it. Ember centered, sparks around it, filling about 85% of the frame. Palette limited to: ember orange #E8552F, tangerine #FF8A5C, deep green #157F55, butter yellow #F6C945, soft sky blue #9CC3E6, warm paper white #FBFAF8, and black #16150F for marker lines only. Place the scene directly on a perfectly flat, solid magenta #FF00FF background with no gradient, no paper patch, no floor and no shadow on the background, with generous padding on every side, so the magenta can be cleanly removed. Nothing in the scene is magenta. No text, no letters, no numbers, no logos anywhere. Warm picture-book charm with grown-up restraint. Not 3D, not glossy, not flat vector art.
-```
-
-### C5. `accountable-ember-witness.png`
-
-*Where it goes:* Witness screen, and the “Nobody is watching yet” banner.
-
-```
-A handmade cut-paper illustration with felt-tip marker details: every shape is cut from matte coloured paper with slightly uneven scissor edges and visible paper fibre texture, layers cast small soft paper shadows on each other, and faces, hands and fine details are drawn in loose black felt-tip marker, printed slightly off-register. The character is Ember, exactly as in the reference sheet: a small, plump teardrop-shaped flame about the size of a coffee mug, cut from ember orange #E8552F paper with a smaller tangerine #FF8A5C inner flame layered on top, a soft three-point flickering tip, two dot eyes and a small curved mouth drawn in black felt-tip marker, and short stubby marker-line arms and legs with round mitten hands. Ember sitting on the shoulder of a friendly person seen from the chest up, both looking at the phone the person is holding. The person is a simple cut-paper figure with a featureless face, wearing a deep green sweater; the phone is soft sky blue. The person and Ember together, filling about 85% of the frame, warm and companionable. Palette limited to: ember orange #E8552F, tangerine #FF8A5C, deep green #157F55, butter yellow #F6C945, soft sky blue #9CC3E6, warm paper white #FBFAF8, and black #16150F for marker lines only. Place the scene directly on a perfectly flat, solid magenta #FF00FF background with no gradient, no paper patch, no floor and no shadow on the background, with generous padding on every side, so the magenta can be cleanly removed. Nothing in the scene is magenta. No text, no letters, no numbers, no logos anywhere. The phone screen is blank. Warm picture-book charm with grown-up restraint. Not 3D, not glossy, not flat vector art.
-```
-
-### C6. `accountable-ember-invite.png`
-
-*Where it goes:* After the invite is sent.
-
-```
-A handmade cut-paper illustration with felt-tip marker details: every shape is cut from matte coloured paper with slightly uneven scissor edges and visible paper fibre texture, layers cast small soft paper shadows on each other, and faces, hands and fine details are drawn in loose black felt-tip marker, printed slightly off-register. The character is Ember, exactly as in the reference sheet: a small, plump teardrop-shaped flame about the size of a coffee mug, cut from ember orange #E8552F paper with a smaller tangerine #FF8A5C inner flame layered on top, a soft three-point flickering tip, two dot eyes and a small curved mouth drawn in black felt-tip marker, and short stubby marker-line arms and legs with round mitten hands. Ember mid-throw, launching a warm paper white paper airplane, with a dashed ember orange trail curling behind the plane. Ember lower left, the plane flying toward the upper right, together filling about 85% of the frame. Palette limited to: ember orange #E8552F, tangerine #FF8A5C, deep green #157F55, butter yellow #F6C945, soft sky blue #9CC3E6, warm paper white #FBFAF8, and black #16150F for marker lines only. Place the scene directly on a perfectly flat, solid magenta #FF00FF background with no gradient, no paper patch, no floor and no shadow on the background, with generous padding on every side, so the magenta can be cleanly removed. Nothing in the scene is magenta. No text, no letters, no numbers, no logos anywhere. Warm picture-book charm with grown-up restraint. Not 3D, not glossy, not flat vector art.
-```
-
-### C7. `accountable-ember-coach.png`
-
-*Where it goes:* Coach tab: Ember’s avatar beside its messages. Also blinks (see B7).
-
-```
-A handmade cut-paper illustration with felt-tip marker details: every shape is cut from matte coloured paper with slightly uneven scissor edges and visible paper fibre texture, layers cast small soft paper shadows on each other, and faces, hands and fine details are drawn in loose black felt-tip marker, printed slightly off-register. The character is Ember, exactly as in the reference sheet: a small, plump teardrop-shaped flame about the size of a coffee mug, cut from ember orange #E8552F paper with a smaller tangerine #FF8A5C inner flame layered on top, a soft three-point flickering tip, two dot eyes and a small curved mouth drawn in black felt-tip marker, and short stubby marker-line arms and legs with round mitten hands. Ember head and upper body only, facing forward, a friendly attentive expression, one mitten hand raised as if about to make a point. Ember fills a square frame, head and upper body centered, filling about 90% of the frame, so it can be cropped to a circle. Palette limited to: ember orange #E8552F, tangerine #FF8A5C, deep green #157F55, butter yellow #F6C945, soft sky blue #9CC3E6, warm paper white #FBFAF8, and black #16150F for marker lines only. Place the scene directly on a perfectly flat, solid magenta #FF00FF background with no gradient, no paper patch, no floor and no shadow on the background, with generous padding on every side, so the magenta can be cleanly removed. Nothing in the scene is magenta. No text, no letters, no numbers, no logos anywhere. Warm picture-book charm with grown-up restraint. Not 3D, not glossy, not flat vector art.
-```
-
-### C8. `accountable-ember-coach-blink.png` — edit: base `accountable-ember-coach.png` (C7)
-
-```
-Using the uploaded image as the base, edit only Ember's eyes: replace the two open dot eyes with two short, gently curved closed-eye lines in the same black felt-tip marker, as if caught mid-blink. Keep everything else exactly identical: the same pose, the same size and position in the frame, the same colours, the same paper texture and shadows, and the same flat magenta #FF00FF background. The two images must line up perfectly when laid on top of each other.
-```
-
----
-
-## Not generating (yet)
-
-Pace and commitment illustrations, the wake-up and week scenes, and the arrow sheet were in the
-first list. Sign-up now shows Ember's moods instead, so they aren't needed; the prompts can be
-rebuilt from the blocks if that changes.
