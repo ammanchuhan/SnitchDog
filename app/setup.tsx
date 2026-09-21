@@ -11,6 +11,7 @@ import { Screen } from '../src/components/Screen';
 import { Text } from '../src/components/Text';
 import { shortId } from '../src/lib/id';
 import { usePlan } from '../src/lib/store';
+import { checkTarget, checkWeight } from '../src/lib/limits';
 import type { Plan, RoutineSlot } from '../src/lib/types';
 import { WEEKDAY_LABEL, WEIGH_INS_PER_WEEK } from '../src/lib/types';
 import { radius, space, useTheme } from '../src/theme';
@@ -32,9 +33,12 @@ export default function Setup() {
   const [ownerName, setOwnerName] = useState('');
 
   const current = STEPS[step];
+  const weightProblem =
+    checkWeight(Number(startValue), unit) ??
+    checkTarget(Number(startValue), Number(targetValue), unit);
   const canContinue = {
     open: true,
-    weight: Number(startValue) > 0 && Number(targetValue) > 0,
+    weight: Number(startValue) > 0 && Number(targetValue) > 0 && !weightProblem,
     wake: true,
     routine: true,
     witness: witnessName.trim().length > 0 && ownerName.trim().length > 0,
@@ -137,10 +141,16 @@ export default function Setup() {
                   </Pressable>
                 ))}
               </View>
-              <Text variant="small" tone="faint">
-                Progress is measured on a seven-day average, so a heavy morning doesn&rsquo;t count
-                against you.
-              </Text>
+              {weightProblem ? (
+                <Text variant="small" tone="ember">
+                  {weightProblem}
+                </Text>
+              ) : (
+                <Text variant="small" tone="faint">
+                  Progress is measured on a seven-day average, so a heavy morning doesn&rsquo;t count
+                  against you.
+                </Text>
+              )}
             </View>
           )}
 

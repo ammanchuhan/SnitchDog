@@ -6,6 +6,7 @@ import { Field } from '../src/components/Field';
 import { Screen } from '../src/components/Screen';
 import { Text } from '../src/components/Text';
 import { useDismiss } from '../src/lib/nav';
+import { checkJump, checkWeight } from '../src/lib/limits';
 import { usePlan } from '../src/lib/store';
 import { currentAverage, latestWeighIn } from '../src/lib/types';
 import { space, useTheme } from '../src/theme';
@@ -22,7 +23,9 @@ export default function Log() {
   const last = latestWeighIn(plan)?.value ?? start;
   const average = currentAverage(plan);
   const parsed = Number(value);
-  const valid = parsed > 0;
+  const problem = checkWeight(parsed, unit);
+  const warning = problem ? null : checkJump(parsed, latestWeighIn(plan)?.value, unit);
+  const valid = parsed > 0 && !problem;
   const delta = valid ? parsed - last : 0;
 
   return (
@@ -57,7 +60,13 @@ export default function Log() {
             returnKeyType="done"
           />
 
-          {valid && delta !== 0 && (
+          {(problem || warning) && (
+            <Text variant="small" tone="ember">
+              {problem ?? warning}
+            </Text>
+          )}
+
+          {valid && !warning && delta !== 0 && (
             <Text
               variant="label"
               numeric

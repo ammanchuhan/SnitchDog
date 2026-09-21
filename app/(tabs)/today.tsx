@@ -6,7 +6,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../src/components/Button';
 import { Card } from '../../src/components/Card';
 import { hourLabel } from '../../src/components/HourPicker';
+import { Snapshot } from '../../src/components/Snapshot';
 import { Text } from '../../src/components/Text';
+import { checkTarget } from '../../src/lib/limits';
 import { seeded } from '../../src/lib/seed';
 import { usePlan } from '../../src/lib/store';
 import { sessionFor, slotsOn, toDate, weekStatus, weighInOn } from '../../src/lib/types';
@@ -68,8 +70,28 @@ export default function Today() {
           </Text>
         </Pressable>
 
-        <Text variant="display" style={{ paddingTop: space(2), paddingBottom: space(8) }}>
+        <Text variant="display" style={{ paddingTop: space(2), paddingBottom: space(6) }}>
           {greeting(plan.ownerName)}
+        </Text>
+
+        {/* A target saved before the limits existed still has to be fixed, not quietly honoured. */}
+        {checkTarget(goal.start, goal.target, goal.unit) ? (
+          <Pressable onPress={() => router.navigate('/plan')}>
+            <Card style={{ borderColor: t.ember, gap: space(2) }}>
+              <Text variant="bodyStrong" tone="ember">
+                Your target needs another look
+              </Text>
+              <Text variant="small" tone="dim">
+                {checkTarget(goal.start, goal.target, goal.unit)}
+              </Text>
+            </Card>
+          </Pressable>
+        ) : (
+          <Snapshot plan={plan} />
+        )}
+
+        <Text variant="micro" tone="faint" style={{ paddingTop: space(8), paddingBottom: space(3) }}>
+          DUE TODAY
         </Text>
 
         <View style={{ gap: space(3) }}>

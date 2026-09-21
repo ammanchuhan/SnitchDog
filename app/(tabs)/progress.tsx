@@ -1,4 +1,5 @@
-import { useWindowDimensions, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Pressable, useWindowDimensions, View } from 'react-native';
 
 import { DayStrip } from '../../src/components/DayStrip';
 import { MonthCalendar } from '../../src/components/MonthCalendar';
@@ -24,6 +25,7 @@ import { radius, space, useTheme } from '../../src/theme';
 export default function Progress() {
   const { plan } = usePlan();
   const t = useTheme();
+  const router = useRouter();
   const { width } = useWindowDimensions();
 
   if (!plan) return null;
@@ -109,6 +111,31 @@ export default function Progress() {
       </Text>
 
       <WeightChart plan={plan} width={width - space(12)} />
+
+      <Pressable
+        onPress={() => router.push('/history')}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginTop: space(6),
+          borderRadius: radius.md,
+          borderWidth: 1,
+          borderColor: t.line,
+          backgroundColor: t.surface,
+          padding: space(4),
+        }}
+      >
+        <View style={{ gap: space(1) }}>
+          <Text variant="bodyStrong">Every weigh-in</Text>
+          <Text variant="small" tone="dim" numeric>
+            {plan.weighIns.length} mornings, day by day
+          </Text>
+        </View>
+        <Text variant="heading" tone="faint">
+          ›
+        </Text>
+      </Pressable>
 
       <View style={{ flexDirection: 'row', gap: space(3), paddingTop: space(8) }}>
         <Figure

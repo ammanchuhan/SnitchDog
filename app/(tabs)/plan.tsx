@@ -11,6 +11,7 @@ import { Screen } from '../../src/components/Screen';
 import { Text } from '../../src/components/Text';
 import { deletePlan, ownerLinkUrl } from '../../src/lib/api';
 import { shortId } from '../../src/lib/id';
+import { checkTarget, convert } from '../../src/lib/limits';
 import { usePlan } from '../../src/lib/store';
 import type { RoutineSlot } from '../../src/lib/types';
 import { WEIGH_INS_PER_WEEK } from '../../src/lib/types';
@@ -19,6 +20,15 @@ import { radius, space, useTheme } from '../../src/theme';
 /** Everything set during onboarding, changeable afterwards. A goal you can't edit is a goal
  *  people abandon the app over rather than adjust. */
 export default function PlanScreen() {
+  const { plan } = usePlan();
+  // As a tab this screen can mount before the plan has loaded from the phone. The form seeds its
+  // fields once, so it must not exist until there's a plan to seed them from — otherwise it
+  // shows blanks, and saving would write the blanks over the real plan.
+  if (!plan) return null;
+  return <PlanForm key={plan.id} />;
+}
+
+function PlanForm() {
   const { plan, update, clear } = usePlan();
   const router = useRouter();
   const t = useTheme();
@@ -34,7 +44,9 @@ export default function PlanScreen() {
 
   if (!plan) return null;
   const witnessChanged = witnessName.trim() !== plan.witness.name;
-  const valid = Number(target) > 0 && witnessName.trim().length > 0;
+  // The start stays in the unit it was recorded in; compare like with like.
+  const targetProblem = checkTarget(convert(plan.goal.start, plan.goal.unit, unit), Number(target), unit);
+  const valid = Number(target) > 0 && !targetProblem && witnessName.trim().length > 0;
 
   async function save() {
     if (!plan) return;
@@ -97,6 +109,11 @@ export default function PlanScreen() {
               ))}
             </View>
           </View>
+          {targetProblem && (
+            <Text variant="small" tone="ember">
+              {targetProblem}
+            </Text>
+          )}
           <Text variant="small" tone="faint" numeric>
             Started at {plan.goal.start} {plan.goal.unit}. That number stays as it is — it&rsquo;s
             where you began.
