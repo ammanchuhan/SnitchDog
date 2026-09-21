@@ -388,6 +388,15 @@ terms before any public release.
 | **Friends** — TestFlight | Apple Developer account, EAS build, §7 Gap 1 (auth), witness `/stop`, delete-everything |
 | **Public** — App Store | all of §10, target validation, signposting, rate limits, tests |
 
+### Ideas, not scheduled
+
+Kept here so they are not lost, and kept out of the build until the single loop is proven with real
+users.
+
+| Idea | Why it fits | What it needs first |
+|---|---|---|
+| **Language learning as a proof type** (from Amman, 2026-09-21) | The coach *calls* you and speaks the language you're learning, dropping into your own language when you need a bridge. The proof is showing up for the call. Same ladder: miss the week's floor and the witness hears. | Voice calls (already the planned next delivery channel), a second `Proof` variant, and a real answer to "why this and not Duolingo?" — Duolingo already ships AI video-call practice, so the difference has to be the witness and the ladder, not the conversation. |
+
 ---
 
 ## 13. Decision log
