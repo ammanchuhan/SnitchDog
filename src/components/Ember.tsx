@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Image, View, ViewStyle } from 'react-native';
 
 import { useTheme } from '../theme';
@@ -14,7 +15,7 @@ const POSES = {
   sleepy: require('../../assets/illustrations/ember-sleepy.png'),
   determined: require('../../assets/illustrations/ember-determined.png'),
   laugh: require('../../assets/illustrations/ember-laugh.png'),
-  front: require('../../assets/illustrations/ember-front.png'),
+  hello: require('../../assets/illustrations/ember-hello.png'),
 } as const;
 
 /** Width ÷ height of each pose, from the keyed files, so every size keeps its shape. */
@@ -25,12 +26,36 @@ const ASPECT: Record<EmberMood, number> = {
   sleepy: 405 / 452,
   determined: 325 / 449,
   laugh: 406 / 449,
-  front: 519 / 733,
+  hello: 519 / 733,
 };
 
 export type EmberMood = keyof typeof POSES;
 
-export function Ember({ mood = 'happy', height, style }: { mood?: EmberMood; height: number; style?: ViewStyle }) {
+export function Ember({
+  mood = 'happy',
+  height,
+  fill,
+  style,
+}: {
+  mood?: EmberMood;
+  /** A fixed height. Or pass `fill` to take all the room the parent gives it. */
+  height?: number;
+  fill?: boolean;
+  style?: ViewStyle;
+}) {
+  const [room, setRoom] = useState<{ w: number; h: number } | null>(null);
+  if (fill) {
+    const h = room ? Math.min(room.h, room.w / ASPECT[mood]) : 0;
+    return (
+      <View style={[{ flex: 1, alignItems: 'center', justifyContent: 'flex-end' }, style]} onLayout={(e) => setRoom({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
+        {h > 0 && <Figure mood={mood} height={h} />}
+      </View>
+    );
+  }
+  return <Figure mood={mood} height={height ?? 120} style={style} />;
+}
+
+function Figure({ mood, height, style }: { mood: EmberMood; height: number; style?: ViewStyle }) {
   const t = useTheme();
   const width = height * ASPECT[mood];
   return (
