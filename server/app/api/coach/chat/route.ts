@@ -10,6 +10,7 @@
  */
 import Anthropic from '@anthropic-ai/sdk';
 
+import { allow, clip, MODEL } from '@/lib/budget';
 import { getPlan, getSessions, getWeighIns, sql } from '@/lib/db';
 import { getMemories, remember } from '@/lib/memory';
 import { requiredInWeek } from '@/lib/ladder';
@@ -68,11 +69,17 @@ const TOOLS: Anthropic.Tool[] = [
 ];
 
 export async function POST(req: Request) {
-  const { planId, message, history = [] } = await req.json();
+  const body = await req.json();
+  const planId = body.planId;
+  const message = clip(body.message);
+  const history = Array.isArray(body.history) ? body.history : [];
+  if (!message.trim()) return new Response('empty', { status: 400 });
   const plan = planId ? await getPlan(planId) : null;
   if (!plan) return new Response('not found', { status: 404 });
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return Response.json({ reply: "I'm not connected right now. Log it in the app and I'll catch up." });
+  if (!(await allow(plan.id))) {
+    return Response.json({
+      reply: "I've said all I can for today. Log it in the app and I'll pick it back up tomorrow.",
+    });
   }
 
   const { date } = localNow(plan.timezone);
@@ -97,13 +104,13 @@ ${memories.map((m) => `- ${m.fact}`).join('\n') || '- nothing yet'}`;
   const messages: Anthropic.MessageParam[] = [
     ...history.slice(-10).map((m: { role: string; text: string }) => ({
       role: (m.role === 'coach' ? 'assistant' : 'user') as 'assistant' | 'user',
-      content: m.text,
+      content: clip(m.text),
     })),
     { role: 'user', content: message },
   ];
 
   let res = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    model: MODEL,
     max_tokens: 400,
     system: `${SYSTEM}\n\n${context}`,
     tools: TOOLS,
@@ -151,8 +158,13 @@ ${memories.map((m) => `- ${m.fact}`).join('\n') || '- nothing yet'}`;
       }
     }
 
+    // Recording costs nothing; only the follow-up reply is budgeted.
+    if (!(await allow(plan.id))) {
+      const done = results.filter((r) => !r.is_error).length;
+      return Response.json({ reply: done ? 'Done. That’s in.' : 'Say that again?', changed });
+    }
     res = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: MODEL,
       max_tokens: 400,
       system: `${SYSTEM}\n\n${context}`,
       tools: TOOLS,

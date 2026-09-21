@@ -73,3 +73,11 @@ create table if not exists coach_memories (
 );
 
 create index if not exists coach_memories_plan on coach_memories (plan_id, id);
+
+-- Model calls counted per UTC day, per plan and in total ('*'), so spend has a ceiling.
+create table if not exists ai_usage (
+  day   text not null,
+  scope text not null,
+  calls int  not null default 0,
+  primary key (day, scope)
+);

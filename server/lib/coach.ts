@@ -11,6 +11,7 @@
  */
 import Anthropic from '@anthropic-ai/sdk';
 
+import { allow, MODEL } from './budget';
 import type { PlanRow } from './db';
 
 export type Moment =
@@ -85,7 +86,7 @@ const SITUATION: Record<Moment['kind'], string> = {
 
 export async function write(p: PlanRow, history: string, m: Moment): Promise<string> {
   const fallback = templates(p, m);
-  if (!process.env.ANTHROPIC_API_KEY) return fallback;
+  if (!(await allow(p.id))) return fallback;
 
   const toWitness = m.kind.startsWith('witness_');
   const audience = toWitness
@@ -95,7 +96,7 @@ export async function write(p: PlanRow, history: string, m: Moment): Promise<str
   try {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const res = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: MODEL,
       max_tokens: 120,
       system: SYSTEM,
       messages: [
