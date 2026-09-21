@@ -46,8 +46,9 @@ export default function RootLayout() {
               animation: 'slide_from_right',
             }}
           >
+            <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+            <Stack.Screen name="plan" />
             <Stack.Screen name="log" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
-            <Stack.Screen name="chat" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
           </Stack>
         </PlanProvider>
       </SafeAreaProvider>

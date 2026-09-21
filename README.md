@@ -36,7 +36,7 @@ Technical decisions, safety rules, privacy inventory and the legal checklist liv
 ## Layout
 
 ```
-app/        Expo Router screens: setup, home, log, witness
+app/        Expo Router: (tabs)/ today, progress, coach, plan; plus setup, log, witness, memories
 src/        Domain model, local-first store, design system
 server/     Next.js on Vercel: Telegram webhook, escalation ladder, cron
 ```

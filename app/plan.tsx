@@ -1,5 +1,6 @@
+import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, View } from 'react-native';
 
 import { Button } from '../src/components/Button';
@@ -8,17 +9,28 @@ import { HourPicker, hourLabel } from '../src/components/HourPicker';
 import { RoutineEditor } from '../src/components/RoutineEditor';
 import { Screen } from '../src/components/Screen';
 import { Text } from '../src/components/Text';
-import { deletePlan } from '../src/lib/api';
+import { deletePlan, ownerLinkUrl } from '../src/lib/api';
 import { shortId } from '../src/lib/id';
-import { useDismiss } from '../src/lib/nav';
+import { checkTarget, convert } from '../src/lib/limits';
 import { usePlan } from '../src/lib/store';
+import { useDismiss } from '../src/lib/nav';
 import type { RoutineSlot } from '../src/lib/types';
 import { WEIGH_INS_PER_WEEK } from '../src/lib/types';
 import { radius, space, useTheme } from '../src/theme';
 
-/** Everything set during onboarding, changeable afterwards. A goal you can't edit is a goal
+/** Everything set during onboarding, changeable afterwards. Reached from the gear on Home: it's
+ *  visited a few times a month, which doesn't earn it a tab. A goal you can't edit is a goal
  *  people abandon the app over rather than adjust. */
 export default function PlanScreen() {
+  const { plan } = usePlan();
+  // This screen can mount before the plan has loaded from the phone. The form seeds its
+  // fields once, so it must not exist until there's a plan to seed them from — otherwise it
+  // shows blanks, and saving would write the blanks over the real plan.
+  if (!plan) return null;
+  return <PlanForm key={plan.id} />;
+}
+
+function PlanForm() {
   const { plan, update, clear } = usePlan();
   const router = useRouter();
   const dismiss = useDismiss();
@@ -29,10 +41,15 @@ export default function PlanScreen() {
   const [wakeHour, setWakeHour] = useState(plan?.goal.wakeHour ?? 7);
   const [routine, setRoutine] = useState<RoutineSlot[]>(plan?.routine ?? []);
   const [witnessName, setWitnessName] = useState(plan?.witness.name ?? '');
+  const [saved, setSaved] = useState(false);
+  // Any edit after a save means there's something to save again.
+  useEffect(() => setSaved(false), [target, unit, wakeHour, routine, witnessName]);
 
   if (!plan) return null;
   const witnessChanged = witnessName.trim() !== plan.witness.name;
-  const valid = Number(target) > 0 && witnessName.trim().length > 0;
+  // The start stays in the unit it was recorded in; compare like with like.
+  const targetProblem = checkTarget(convert(plan.goal.start, plan.goal.unit, unit), Number(target), unit);
+  const valid = Number(target) > 0 && !targetProblem && witnessName.trim().length > 0;
 
   async function save() {
     if (!plan) return;
@@ -48,20 +65,19 @@ export default function PlanScreen() {
           }
         : {}),
     });
-    dismiss();
+    setSaved(true);
   }
 
   return (
-    <Screen>
+    <Screen style={{ paddingBottom: space(16) }}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: space(4) }}>
+        <View style={{ flexDirection: 'row', paddingTop: space(4) }}>
           <Pressable onPress={dismiss} hitSlop={12}>
             <Text variant="label" tone="faint">
-              Cancel
+              Back
             </Text>
           </Pressable>
         </View>
-
         <Text variant="display" style={{ paddingTop: space(6), paddingBottom: space(8) }}>
           Your plan
         </Text>
@@ -100,6 +116,11 @@ export default function PlanScreen() {
               ))}
             </View>
           </View>
+          {targetProblem && (
+            <Text variant="small" tone="ember">
+              {targetProblem}
+            </Text>
+          )}
           <Text variant="small" tone="faint" numeric>
             Started at {plan.goal.start} {plan.goal.unit}. That number stays as it is — it&rsquo;s
             where you began.
@@ -153,35 +174,29 @@ export default function PlanScreen() {
           )}
         </Section>
 
-        <View style={{ gap: space(3), paddingTop: space(4) }}>
-          <Button label="Save" onPress={save} disabled={!valid} />
+        <View style={{ gap: space(3), paddingTop: space(4), paddingBottom: space(10) }}>
+          <Button label={saved ? 'Saved' : 'Save'} onPress={save} disabled={!valid || saved} />
         </View>
 
-        <Section title="YOUR COACH">
-          <Pressable
-            onPress={() => router.push('/memories')}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              borderRadius: radius.md,
-              borderWidth: 1,
-              borderColor: t.line,
-              backgroundColor: t.surface,
-              padding: space(4),
-            }}
-          >
-            <View style={{ flex: 1, gap: space(1) }}>
-              <Text variant="bodyStrong">What your coach remembers</Text>
-              <Text variant="small" tone="dim">
-                Read it, and delete anything you&rsquo;d rather it forgot
-              </Text>
-            </View>
-            <Text variant="heading" tone="faint">
-              ›
+        <Section title="CHECK-INS">
+          {plan.ownerChatId ? (
+            <Text variant="body" tone="dim">
+              Connected to Telegram. The morning ask and session check-ins arrive there.
             </Text>
-          </Pressable>
+          ) : (
+            <View style={{ gap: space(3) }}>
+              <Text variant="small" tone="dim">
+                The morning ask arrives as a message, so you can answer it without opening this app.
+              </Text>
+              <Button
+                label="Connect Telegram"
+                variant="secondary"
+                onPress={() => Linking.openURL(ownerLinkUrl(plan.id))}
+              />
+            </View>
+          )}
         </Section>
+
 
         {/* Not a reset. History is append-only — wiping a bad week is cheating with extra
             steps — but erasure has to exist, so it lives here, named for what it is. */}

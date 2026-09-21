@@ -10,5 +10,5 @@ export default function Index() {
   const t = useTheme();
 
   if (!ready) return <View style={{ flex: 1, backgroundColor: t.bg }} />;
-  return <Redirect href={plan ? '/home' : '/setup'} />;
+  return <Redirect href={plan ? '/today' : '/setup'} />;
 }

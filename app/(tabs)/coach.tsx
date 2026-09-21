@@ -10,16 +10,18 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Text } from '../src/components/Text';
-import { askCoach, ChatTurn, serverConfigured } from '../src/lib/api';
-import { loadChat, saveChat } from '../src/lib/chat';
-import { useDismiss } from '../src/lib/nav';
-import { usePlan } from '../src/lib/store';
-import { font, radius, space, useTheme } from '../src/theme';
+import { useRouter } from 'expo-router';
+
+import { CoachNote } from '../../src/components/CoachNote';
+import { Text } from '../../src/components/Text';
+import { askCoach, ChatTurn, serverConfigured } from '../../src/lib/api';
+import { loadChat, saveChat } from '../../src/lib/chat';
+import { usePlan } from '../../src/lib/store';
+import { font, radius, space, useTheme } from '../../src/theme';
 
 export default function Chat() {
   const { plan, refresh } = usePlan();
-  const dismiss = useDismiss();
+  const router = useRouter();
   const t = useTheme();
   const scroller = useRef<ScrollView>(null);
 
@@ -73,9 +75,9 @@ export default function Chat() {
           }}
         >
           <Text variant="heading">Your coach</Text>
-          <Pressable onPress={dismiss} hitSlop={12}>
+          <Pressable onPress={() => router.push('/memories')} hitSlop={12}>
             <Text variant="label" tone="faint">
-              Close
+              What it remembers ›
             </Text>
           </Pressable>
         </View>
@@ -86,6 +88,9 @@ export default function Chat() {
           onContentSizeChange={() => scroller.current?.scrollToEnd({ animated: true })}
           keyboardShouldPersistTaps="handled"
         >
+          {/* Today's line from the coach, and the vote that teaches it what lands. */}
+          <CoachNote linkToChat={false} />
+
           {turns.length === 0 && (
             <View style={{ gap: space(3), paddingTop: space(6) }}>
               <Text variant="title">What&rsquo;s in the way?</Text>

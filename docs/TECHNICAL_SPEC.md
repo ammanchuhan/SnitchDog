@@ -264,9 +264,12 @@ Weight-loss software can do real harm to people with disordered eating. Rules, i
   three readings a week produce an honest average.
 - ✅ **Progress follows a seven-day average, never today's reading.** Weight swings pounds on water
   alone. A bar that lurches on a heavy morning teaches people either to distrust it or to chase it.
-- ○ **Target validation**: refuse targets below a plainly unhealthy BMI, and refuse rates of loss
-  above roughly 1% of body weight per week. Offer to continue with the check-in but without a
-  target, rather than refusing the person.
+- ◑ **Target validation** (`src/lib/limits.ts`): numbers outside 70–700 lb / 32–320 kg are refused
+  as typos; a target more than 35% below or 25% above the starting weight is refused with the
+  nearest allowed value; a reading 5%+ from the last one gets a soft warning, never a block. A
+  target saved before the rule existed is flagged on Today. **Still to do:** a BMI floor, which
+  needs height (not collected), and a rate-of-loss check, which needs a target date (not
+  collected); and offering to continue without a target rather than refusing the person.
 - ○ **Signposting**: a quiet, permanent link to eating-disorder support, and a softer path if a
   logged number drops implausibly fast.
 - ○ **Age**: 13+ minimum, and weight goals gated to 18+ unless there is a good reason not to.
@@ -428,6 +431,8 @@ users.
 | 2026-09-20 (rev 2) | Training is a schedule, not a checkbox | "Did you work out?" is a question anyone can dodge. "Did you get Wednesday's session in?" is not. |
 | 2026-09-20 (rev 2) | Progress follows the seven-day average | Daily weight is mostly water. A progress bar that reacts to it is lying. |
 | 2026-09-20 (rev 2) | The first week is pro-rated | Starting on a Saturday should not mean failing before you have done anything. Found by running the app on a Sunday. |
+| 2026-09-21 | Four tabs — Today, Progress, Coach, Plan — instead of one busy home | Home stacked seven things. Today now answers one question (what do I owe today?); browsing moved to its own tabs. Native iOS tab bar, so it reads as a phone app. |
+| 2026-09-21 | Three tabs — Analytics, Home (middle), Coach — with Plan pushed from Home | Home should show where you stand as well as what's due: the goal, the average, the bar, the week. Analytics is only for looking back (trend, month-by-month calendar with a per-month summary, weeks). Plan is settings, visited rarely, so it lost its tab. |
 
 ---
 

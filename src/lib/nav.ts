@@ -9,6 +9,6 @@ export function useDismiss() {
   const router = useRouter();
   return useCallback(() => {
     if (router.canGoBack()) router.back();
-    else router.replace('/home');
+    else router.replace('/today');
   }, [router]);
 }
