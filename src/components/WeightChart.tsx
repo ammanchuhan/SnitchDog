@@ -47,11 +47,15 @@ export function WeightChart({ plan, width }: { plan: Plan; width: number }) {
 
   const plotWidth = width - AXIS;
 
+  // How far back the record goes. A range longer than that would be mostly empty chart, so it's
+  // offered only once the data fills it; until then All shows everything there is.
+  const first = plan.weighIns.reduce((min, w) => (w.date < min ? w.date : min), today);
+  const recorded = Math.round((Date.parse(today) - Date.parse(first)) / 86_400_000) + 1;
+  const available = (r: (typeof RANGES)[number]) => r.days === 0 || r.days <= 30 || recorded >= r.days;
+
   const data = useMemo(() => {
-    const first = plan.weighIns[0]?.date ?? plan.createdAt.slice(0, 10);
-    const sinceFirst = Math.round((Date.parse(today) - Date.parse(first)) / 86_400_000) + 1;
     const chosen = RANGES.find((r) => r.key === range)!;
-    const days = Math.max(chosen.days || sinceFirst, 14);
+    const days = Math.max(chosen.days || recorded, 14);
 
     const readings = Array.from({ length: days }, (_, i) => {
       const date = shiftDate(today, i - days + 1);
@@ -81,7 +85,7 @@ export function WeightChart({ plan, width }: { plan: Plan; width: number }) {
     });
 
     return { readings, days, lo, hi, x, y, path, grid: ticks(lo, hi) };
-  }, [plan, range, today, plotWidth]);
+  }, [plan, range, today, plotWidth, recorded]);
 
   if (!data) {
     return (
@@ -221,13 +225,17 @@ export function WeightChart({ plan, width }: { plan: Plan; width: number }) {
       <View style={{ flexDirection: 'row', gap: space(2) }}>
         {RANGES.map((r) => {
           const on = r.key === range;
+          const open = available(r);
           return (
             <Pressable
               key={r.key}
               onPress={() => setRange(r.key)}
+              disabled={!open}
               accessibilityRole="button"
-              accessibilityState={{ selected: on }}
+              accessibilityState={{ selected: on, disabled: !open }}
+              accessibilityHint={open ? undefined : `Available once you have ${r.key === '3M' ? 'three' : 'six'} months of weigh-ins`}
               style={{
+                opacity: open ? 1 : 0.35,
                 flex: 1,
                 height: 36,
                 alignItems: 'center',
