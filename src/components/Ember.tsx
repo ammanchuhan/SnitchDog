@@ -1,39 +1,47 @@
 import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, Easing, Image, ImageSourcePropType, View, ViewStyle } from 'react-native';
+import { AccessibilityInfo, Animated, Easing, Image, View, ViewStyle } from 'react-native';
 
 import { useTheme } from '../theme';
+import { PART_SIZE, PART_SRC, PartName } from './emberParts';
 
-/** Ember, the coach, in one of its moods — and alive: it bops, blinks and waves.
+/** Ember, the coach — assembled, not drawn.
  *
- * The art is generated from docs/ILLUSTRATION_STYLE.md and keyed onto transparency with
- * scripts/key-illustration.py. On the dark theme Ember's black marker arms and legs would vanish,
- * so it sits in a soft glow of its own colour — a flame in the dark, which is what it is.
+ * Image models can't keep a character identical from one picture to the next, so Ember is a rig:
+ * one generated body, with generated eyes, mouths, arms and legs placed on it (parts cut by
+ * scripts/cut-rig.py, prompts in docs/ILLUSTRATION_STYLE.md). Every mood is the same body with a
+ * different face, so Ember looks the same on every screen. Blinking swaps the eyes; the head bop
+ * is a transform. All motion stops under Reduce Motion.
  *
- * Motion: the head bop is a transform, so every pose has it. Blinking and waving are frame swaps,
- * so they only happen for poses that have those frames (batch B in the illustration doc); add a
- * frame to BLINK or WAVE below and the pose picks it up. All of it stops under Reduce Motion. */
-const POSES = {
-  happy: require('../../assets/illustrations/ember-happy.png'),
-  proud: require('../../assets/illustrations/ember-proud.png'),
-  worried: require('../../assets/illustrations/ember-worried.png'),
-  sleepy: require('../../assets/illustrations/ember-sleepy.png'),
-  determined: require('../../assets/illustrations/ember-determined.png'),
-  laugh: require('../../assets/illustrations/ember-laugh.png'),
-  hello: require('../../assets/illustrations/ember-hello.png'),
-} as const;
+ * On the dark theme Ember's black marker features would sink into the background, so it sits in a
+ * soft glow of its own colour — a flame in the dark, which is what it is. */
 
-export type EmberMood = keyof typeof POSES;
-
-/** Closed-eye frames, swapped in for a moment every few seconds. */
-const BLINK: Partial<Record<EmberMood, ImageSourcePropType>> = {};
-/** A second arm position, alternated with the pose to make a wave. */
-const WAVE: Partial<Record<EmberMood, ImageSourcePropType>> = {};
-
-const aspect = (m: EmberMood) => {
-  const { width, height } = Image.resolveAssetSource(POSES[m]) ?? {};
-  // Metro knows each image's size; if it ever doesn't, Ember's usual proportions are close enough.
-  return width && height ? width / height : 0.72;
+type Recipe = {
+  eyes: PartName;
+  mouth: PartName;
+  /** Worried Ember shrinks a little. */
+  scale?: number;
 };
+
+const MOODS = {
+  hello: { eyes: 'eyes-open', mouth: 'mouth-smile' },
+  happy: { eyes: 'eyes-open', mouth: 'mouth-smile' },
+  proud: { eyes: 'eyes-open', mouth: 'mouth-laugh' },
+  laugh: { eyes: 'eyes-happy', mouth: 'mouth-laugh' },
+  worried: { eyes: 'eyes-worried', mouth: 'mouth-frown', scale: 0.94 },
+  sleepy: { eyes: 'eyes-sleepy', mouth: 'mouth-yawn' },
+  determined: { eyes: 'eyes-determined', mouth: 'mouth-half' },
+} satisfies Record<string, Recipe>;
+
+export type EmberMood = keyof typeof MOODS;
+
+/** Where the features sit on the body, as fractions of the body's width and height. */
+const ANCHOR = {
+  eyes: { x: 0.5, y: 0.6 },
+  mouth: { x: 0.5, y: 0.71 },
+};
+
+const BODY = PART_SIZE.body;
+const ASPECT = BODY.w / BODY.h;
 
 export function Ember({
   mood = 'happy',
@@ -52,7 +60,8 @@ export function Ember({
 }) {
   const [room, setRoom] = useState<{ w: number; h: number } | null>(null);
   if (fill) {
-    const h = room ? Math.min(room.h, room.w / aspect(mood)) : 0;
+    // Never wider than about two thirds of the space: a full-width flame stops reading as a character.
+    const h = room ? Math.min(room.h, (room.w * 0.66) / ASPECT) : 0;
     return (
       <View
         style={[{ flex: 1, alignItems: 'center', justifyContent: 'flex-end' }, style]}
@@ -67,7 +76,9 @@ export function Ember({
 
 function Figure({ mood, height, still, style }: { mood: EmberMood; height: number; still?: boolean; style?: ViewStyle }) {
   const t = useTheme();
-  const width = height * aspect(mood);
+  const recipe: Recipe = MOODS[mood];
+  const width = height * ASPECT;
+  const s = height / BODY.h; // points per source pixel
   const [reduce, setReduce] = useState(false);
   const moving = !still && !reduce;
 
@@ -75,7 +86,7 @@ function Figure({ mood, height, still, style }: { mood: EmberMood; height: numbe
     AccessibilityInfo.isReduceMotionEnabled().then(setReduce);
   }, []);
 
-  // Head bop: a nod to one side and the other, with a small bounce on each, pivoting at the feet.
+  // Head bop: a nod to one side and the other, with a small bounce on each, pivoting at the base.
   const beat = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (!moving) return;
@@ -87,10 +98,11 @@ function Figure({ mood, height, still, style }: { mood: EmberMood; height: numbe
     return () => loop.stop();
   }, [moving, beat]);
 
-  // Blink: closed eyes for 150 ms, at a slightly irregular interval so it doesn't feel mechanical.
+  // Blink: open eyes swap to closed for 150 ms, at a slightly irregular interval. Only for moods
+  // with plain open eyes; the others already have their own eye shape.
   const [blinking, setBlinking] = useState(false);
   useEffect(() => {
-    if (!moving || !BLINK[mood]) return;
+    if (!moving || recipe.eyes !== 'eyes-open') return;
     let timer: ReturnType<typeof setTimeout>;
     const schedule = () => {
       timer = setTimeout(() => {
@@ -103,25 +115,26 @@ function Figure({ mood, height, still, style }: { mood: EmberMood; height: numbe
     };
     schedule();
     return () => clearTimeout(timer);
-  }, [moving, mood]);
+  }, [moving, recipe.eyes]);
 
-  // Wave: four quick swings, then a rest, then again.
-  const [waveUp, setWaveUp] = useState(false);
-  useEffect(() => {
-    if (!moving || !WAVE[mood]) return;
-    let n = 0;
-    let timer: ReturnType<typeof setTimeout>;
-    const tick = () => {
-      n += 1;
-      setWaveUp(n % 2 === 1);
-      timer = setTimeout(tick, n % 8 === 0 ? 2600 : 260);
-    };
-    timer = setTimeout(tick, 400);
-    return () => clearTimeout(timer);
-  }, [moving, mood]);
+  /** A part centred on an anchor, sized from its source pixels. */
+  const place = (name: PartName, at: { x: number; y: number }, visible = true) => {
+    const size = PART_SIZE[name];
+    const w = size.w * s;
+    const h = size.h * s;
+    return (
+      <Image
+        key={name}
+        source={PART_SRC[name]}
+        style={{ position: 'absolute', left: at.x * width - w / 2, top: at.y * height - h / 2, width: w, height: h, opacity: visible ? 1 : 0 }}
+        resizeMode="stretch"
+        accessible={false}
+      />
+    );
+  };
 
-  const frame = blinking ? BLINK[mood] : waveUp ? WAVE[mood] : undefined;
-  const pivot = height / 2; // rotate around the feet, not the middle
+  const pivot = height / 2;
+  const scale = recipe.scale ?? 1;
 
   return (
     <View style={[{ width, height, alignItems: 'center', justifyContent: 'center' }, style]}>
@@ -146,30 +159,24 @@ function Figure({ mood, height, still, style }: { mood: EmberMood; height: numbe
         style={{
           width,
           height,
-          transform: moving
-            ? [
-                { translateY: pivot },
-                { rotate: beat.interpolate({ inputRange: [0, 0.25, 0.5, 0.75, 1], outputRange: ['0deg', '2.5deg', '0deg', '-2.5deg', '0deg'] }) },
-                { translateY: -pivot },
-                { translateY: beat.interpolate({ inputRange: [0, 0.25, 0.5, 0.75, 1], outputRange: [0, -height * 0.025, 0, -height * 0.025, 0] }) },
-              ]
-            : [],
+          transform: [
+            { translateY: pivot },
+            ...(moving
+              ? [{ rotate: beat.interpolate({ inputRange: [0, 0.25, 0.5, 0.75, 1], outputRange: ['0deg', '2.5deg', '0deg', '-2.5deg', '0deg'] }) }]
+              : []),
+            { scale },
+            { translateY: -pivot },
+            ...(moving
+              ? [{ translateY: beat.interpolate({ inputRange: [0, 0.25, 0.5, 0.75, 1], outputRange: [0, -height * 0.025, 0, -height * 0.025, 0] }) }]
+              : []),
+          ],
         }}
       >
-        {/* The pose, with any animation frame stacked on top and shown by opacity, so a swap is
-            instant rather than waiting on an image load. */}
-        <Image source={POSES[mood]} style={{ position: 'absolute', width, height, opacity: frame ? 0 : 1 }} resizeMode="contain" accessible={false} />
-        {BLINK[mood] && (
-          <Image source={BLINK[mood]!} style={{ position: 'absolute', width, height, opacity: blinking ? 1 : 0 }} resizeMode="contain" accessible={false} />
-        )}
-        {WAVE[mood] && (
-          <Image
-            source={WAVE[mood]!}
-            style={{ position: 'absolute', width, height, opacity: !blinking && waveUp ? 1 : 0 }}
-            resizeMode="contain"
-            accessible={false}
-          />
-        )}
+        <Image source={PART_SRC.body} style={{ position: 'absolute', left: 0, top: 0, width, height }} resizeMode="stretch" accessible={false} />
+        {/* Both eye states are always mounted and swapped by opacity, so a blink is instant. */}
+        {place(recipe.eyes, ANCHOR.eyes, !blinking)}
+        {recipe.eyes === 'eyes-open' && place('eyes-blink', ANCHOR.eyes, blinking)}
+        {place(recipe.mouth, ANCHOR.mouth)}
       </Animated.View>
     </View>
   );

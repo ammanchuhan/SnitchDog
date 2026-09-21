@@ -1,0 +1,54 @@
+{
+ "eyes-open": {
+  "w": 688,
+  "h": 453
+ },
+ "eyes-blink": {
+  "w": 688,
+  "h": 452
+ },
+ "eyes-happy": {
+  "w": 688,
+  "h": 453
+ },
+ "eyes-worried": {
+  "w": 688,
+  "h": 452
+ },
+ "eyes-determined": {
+  "w": 688,
+  "h": 452
+ },
+ "eyes-sleepy": {
+  "w": 688,
+  "h": 452
+ },
+ "mouth-smile": {
+  "w": 275,
+  "h": 295
+ },
+ "mouth-laugh": {
+  "w": 413,
+  "h": 295
+ },
+ "mouth-frown": {
+  "w": 295,
+  "h": 295
+ },
+ "mouth-yawn": {
+  "w": 236,
+  "h": 295
+ },
+ "mouth-half": {
+  "w": 393,
+  "h": 295
+ },
+ "mouth-o": {
+  "w": 177,
+  "h": 295
+ },
+ "body": {
+  "w": 904,
+  "h": 1350
+ }
+}
