@@ -245,6 +245,34 @@ export const PART_SIZE = {
       "x": 85,
       "y": 482
     }
+  },
+  "leg-left": {
+    "w": 252,
+    "h": 649,
+    "ink": {
+      "x": 0,
+      "y": 31,
+      "w": 252,
+      "h": 602
+    },
+    "pivot": {
+      "x": 126,
+      "y": 69
+    }
+  },
+  "leg-right": {
+    "w": 252,
+    "h": 649,
+    "ink": {
+      "x": 0,
+      "y": 31,
+      "w": 247,
+      "h": 602
+    },
+    "pivot": {
+      "x": 126,
+      "y": 69
+    }
   }
 } as const;
 
@@ -260,6 +288,8 @@ export const PART_SRC = {
   'eyes-open': require('../../assets/illustrations/rig/eyes-open.png'),
   'eyes-sleepy': require('../../assets/illustrations/rig/eyes-sleepy.png'),
   'eyes-worried': require('../../assets/illustrations/rig/eyes-worried.png'),
+  'leg-left': require('../../assets/illustrations/rig/leg-left.png'),
+  'leg-right': require('../../assets/illustrations/rig/leg-right.png'),
   'mouth-frown': require('../../assets/illustrations/rig/mouth-frown.png'),
   'mouth-half': require('../../assets/illustrations/rig/mouth-half.png'),
   'mouth-laugh': require('../../assets/illustrations/rig/mouth-laugh.png'),

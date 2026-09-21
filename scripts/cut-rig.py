@@ -48,6 +48,12 @@ SHEETS = {
         'arm-hip': (807, 232, 100, 135, {'pivot': (840, 125), 'recolor': True}),
         'arm-up': (1132, 200, 145, 140, {'pivot': (1030, 305)}),
     },
+    # Legs: the front-facing pair split down the middle into two single legs, so the stance can be
+    # set in the layout. Each pivot is the top of the leg, which tucks behind the body.
+    'ember-legs.jpeg': {
+        'leg-left': (638, 420, 64, 250, {'pivot': (638, 205), 'shorten': (0.3, 0.64)}),
+        'leg-right': (766, 420, 64, 250, {'pivot': (766, 205), 'shorten': (0.3, 0.64)}),
+    },
     'ember-props.jpeg': {
         'prop-scale': (295, 215, 180, 165, 'trim'),
         'prop-phone': (700, 212, 110, 165, 'trim'),
@@ -122,6 +128,15 @@ for sheet, boxes in SHEETS.items():
             elif isinstance(opts, dict):
                 if opts.get('recolor'):
                     recolor_to_tangerine(part)
+                if opts.get('shorten'):
+                    # Stubby legs: cut out a band of straight shin between the two fractions of the
+                    # part's height and join the ends. The shin is straight, so the seam doesn't show,
+                    # and the hip and foot keep their shape (squashing would flatten the feet).
+                    top, bottom = (round(f * part.height) for f in opts['shorten'])
+                    joined = Image.new('RGBA', (part.width, part.height - (bottom - top)))
+                    joined.paste(part.crop((0, 0, part.width, top)), (0, 0))
+                    joined.paste(part.crop((0, bottom, part.width, part.height)), (0, top))
+                    part = joined
                 px, py = opts['pivot']
                 pivot = {'x': round((px - (cx - hw)) * SCALE), 'y': round((py - (cy - hh)) * SCALE)}
         parts[name] = {'w': part.width, 'h': part.height}

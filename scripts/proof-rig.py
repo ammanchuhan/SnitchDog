@@ -58,10 +58,19 @@ def arm(canvas, name, flip, side):
     canvas.alpha_composite(img, (round(OX + sh['x'] * bw - px), round(sh['y'] * bh - py)))
 
 
+def legs(canvas):
+    k = layout['legScale']
+    for name, hip in (('leg-left', layout['hips'][0]), ('leg-right', layout['hips'][1])):
+        p = parts[name]
+        img = Image.open(os.path.join(RIG, f'{name}@3x.png')).resize((round(p['w'] * k), round(p['h'] * k)))
+        canvas.alpha_composite(img, (round(OX + hip['x'] * bw - p['pivot']['x'] * k), round(hip['y'] * bh - p['pivot']['y'] * k)))
+
+
 tiles = []
 for mood, (eyes, mouth, arms) in MOODS.items():
     for blink in ([False, True] if eyes == 'eyes-open' and mood != 'hello' else [False]):
         c = Image.new('RGBA', (CW, CH), (0, 0, 0, 0))
+        legs(c)
         arm(c, *arms[0], 0)
         arm(c, *arms[1], 1)
         face = body.copy()

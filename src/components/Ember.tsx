@@ -8,7 +8,7 @@ import { PART_SIZE, PART_SRC, PartName } from './emberParts';
 /** Ember, the coach — assembled, not drawn.
  *
  * Image models can't keep a character identical from one picture to the next, so Ember is a rig:
- * one generated body, with generated eyes, mouths and arms placed on it (parts cut by
+ * one generated body, with generated eyes, mouths, arms and legs placed on it (parts cut by
  * scripts/cut-rig.py, prompts in docs/ILLUSTRATION_STYLE.md). Every mood is the same body with a
  * different face and arms, so Ember looks the same on every screen. Blinking swaps the eyes; the
  * wave rotates the arm at the shoulder; a single head bop greets each new mood. All motion stops under Reduce Motion.
@@ -164,6 +164,29 @@ function Figure({ mood, height, still, style }: { mood: EmberMood; height: numbe
     );
   };
 
+  /** Two legs, each hung from its hip. Split from one generated pair so the stance is adjustable. */
+  const legs = () =>
+    (['leg-left', 'leg-right'] as const).map((name, i) => {
+      const size = PART_SIZE[name] as { w: number; h: number; pivot: { x: number; y: number } };
+      const k = LAYOUT.legScale * s;
+      const hip = LAYOUT.hips[i];
+      return (
+        <Image
+          key={name}
+          source={PART_SRC[name]}
+          style={{
+            position: 'absolute',
+            left: bodyX + hip.x * bodyW - size.pivot.x * k,
+            top: bodyY + hip.y * bodyH - size.pivot.y * k,
+            width: size.w * k,
+            height: size.h * k,
+          }}
+          resizeMode="stretch"
+          accessible={false}
+        />
+      );
+    });
+
   /** An arm hung from its shoulder by its pivot, rotating around that pivot when it waves. */
   const arm = ({ part, flip }: Arm, side: 0 | 1) => {
     const size = PART_SIZE[part] as { w: number; h: number; pivot: { x: number; y: number } };
@@ -233,7 +256,8 @@ function Figure({ mood, height, still, style }: { mood: EmberMood; height: numbe
           ],
         }}
       >
-        {/* Arms first, so the body covers the shoulder ends. */}
+        {/* Legs and arms first, so the body covers the hip and shoulder ends. */}
+        {legs()}
         {arm(recipe.arms[0], 0)}
         {arm(recipe.arms[1], 1)}
         <Image source={PART_SRC.body} style={{ position: 'absolute', left: bodyX, top: bodyY, width: bodyW, height: bodyH }} resizeMode="stretch" accessible={false} />
