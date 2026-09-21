@@ -47,6 +47,13 @@ const ANCHOR = { shoulders: LAYOUT.shoulders };
 /** The limb sheet was drawn a little large for the body. */
 const LIMB_SCALE = LAYOUT.limbScale;
 
+// Warm the image cache with every part as soon as Ember is first imported, so a new mood's eyes or
+// arms are already decoded by the time they're needed.
+for (const src of Object.values(PART_SRC)) {
+  const { uri } = Image.resolveAssetSource(src) ?? {};
+  if (uri?.startsWith('http')) Image.prefetch(uri).catch(() => {});
+}
+
 const BODY = PART_SIZE.body;
 /** The canvas leaves room around the body for arms thrown out and arms hanging below. */
 const CANVAS = { w: BODY.w * LAYOUT.canvas.w, h: BODY.h * LAYOUT.canvas.h };
@@ -157,6 +164,7 @@ function Figure({ mood, height, still, style }: { mood: EmberMood; height: numbe
       <Image
         key={name}
         source={PART_SRC[name]}
+        onLoadEnd={() => mark(name)}
         style={{ position: 'absolute', left, top, width: w, height: h, opacity: visible ? 1 : 0 }}
         resizeMode="stretch"
         accessible={false}
@@ -174,6 +182,7 @@ function Figure({ mood, height, still, style }: { mood: EmberMood; height: numbe
         <Image
           key={name}
           source={PART_SRC[name]}
+          onLoadEnd={() => mark(name)}
           style={{
             position: 'absolute',
             left: bodyX + hip.x * bodyW - size.pivot.x * k,
@@ -212,10 +221,37 @@ function Figure({ mood, height, still, style }: { mood: EmberMood; height: numbe
           transform: [{ translateX: px - w / 2 }, { translateY: py - h / 2 }, ...rotate, { translateX: w / 2 - px }, { translateY: h / 2 - py }],
         }}
       >
-        <Image source={PART_SRC[part]} style={{ width: w, height: h, transform: flip ? [{ scaleX: -1 }] : [] }} resizeMode="stretch" accessible={false} />
+        <Image
+          source={PART_SRC[part]}
+          onLoadEnd={() => mark(part)}
+          style={{ width: w, height: h, transform: flip ? [{ scaleX: -1 }] : [] }}
+          resizeMode="stretch"
+          accessible={false}
+        />
       </Animated.View>
     );
   };
+
+  // Show Ember only once every part it's made of has loaded. Parts are separate images and load in
+  // their own time; without this the small legs appear a moment before the body. Once shown it stays
+  // shown: the parts are cached by then, so a change of mood swaps instantly.
+  const needed: PartName[] = ['body', 'leg-left', 'leg-right', recipe.arms[0].part, recipe.arms[1].part, recipe.eyes, recipe.mouth];
+  const [loaded, setLoaded] = useState<ReadonlySet<string>>(new Set());
+  const mark = (name: string) => setLoaded((prev) => (prev.has(name) ? prev : new Set(prev).add(name)));
+  const [shown, setShown] = useState(false);
+  // Never wait forever on an image that doesn't report back: show whatever has loaded after 1.5 s.
+  const [waited, setWaited] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setWaited(true), 1500);
+    return () => clearTimeout(id);
+  }, []);
+  const ready = shown || waited || needed.every((n) => loaded.has(n));
+  const appear = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!ready || shown) return;
+    setShown(true);
+    Animated.timing(appear, { toValue: 1, duration: 180, useNativeDriver: true }).start();
+  }, [ready, shown, appear]);
 
   const pivot = height / 2;
   const scale = recipe.scale ?? 1;
@@ -243,6 +279,7 @@ function Figure({ mood, height, still, style }: { mood: EmberMood; height: numbe
         style={{
           width,
           height,
+          opacity: appear,
           transform: [
             { translateY: pivot },
             ...(moving
@@ -260,7 +297,13 @@ function Figure({ mood, height, still, style }: { mood: EmberMood; height: numbe
         {legs()}
         {arm(recipe.arms[0], 0)}
         {arm(recipe.arms[1], 1)}
-        <Image source={PART_SRC.body} style={{ position: 'absolute', left: bodyX, top: bodyY, width: bodyW, height: bodyH }} resizeMode="stretch" accessible={false} />
+        <Image
+          source={PART_SRC.body}
+          onLoadEnd={() => mark('body')}
+          style={{ position: 'absolute', left: bodyX, top: bodyY, width: bodyW, height: bodyH }}
+          resizeMode="stretch"
+          accessible={false}
+        />
         {/* Both eye states are always mounted and swapped by opacity, so a blink is instant. */}
         {place(recipe.eyes, !blinking)}
         {recipe.eyes === 'eyes-open' && place('eyes-blink', blinking)}

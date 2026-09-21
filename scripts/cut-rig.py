@@ -48,11 +48,12 @@ SHEETS = {
         'arm-hip': (807, 232, 100, 135, {'pivot': (840, 125), 'recolor': True}),
         'arm-up': (1132, 200, 145, 140, {'pivot': (1030, 305)}),
     },
-    # Legs: the front-facing pair split down the middle into two single legs, so the stance can be
-    # set in the layout. Each pivot is the top of the leg, which tucks behind the body.
+    # Legs: just the shin and foot of each leg from the generated pair. The pair's wide hip-and-thigh
+    # block reads as a pair of shorts under Ember, so it's left out; a short shin makes them stubby.
+    # Each pivot is the top of the shin, which tucks behind the body.
     'ember-legs.jpeg': {
-        'leg-left': (638, 420, 64, 250, {'pivot': (638, 205), 'shorten': (0.3, 0.64)}),
-        'leg-right': (766, 420, 64, 250, {'pivot': (766, 205), 'shorten': (0.3, 0.64)}),
+        'leg-left': (635, 552, 66, 114, {'pivot': (649, 440)}),
+        'leg-right': (769, 552, 66, 114, {'pivot': (755, 440)}),
     },
     'ember-props.jpeg': {
         'prop-scale': (295, 215, 180, 165, 'trim'),
