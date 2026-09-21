@@ -9,7 +9,7 @@ import { toDate } from '../lib/types';
 import { radius, space, useTheme } from '../theme';
 import { Text } from './Text';
 
-/** One line a day from the coach, and two buttons that teach it what lands.
+/** One line a day from Ember, the coach, and two buttons that teach it what lands.
  *
  * The vote is on the *kind* of line, not the wording — "don't talk to me about streaks" is a
  * useful thing to learn, "I didn't like that sentence" isn't. */
@@ -54,7 +54,7 @@ export function CoachNote({ linkToChat = true }: { linkToChat?: boolean }) {
         {linkToChat ? (
           <Pressable onPress={() => router.push('/coach')} hitSlop={8}>
             <Text variant="micro" tone="faint">
-              {votedToday ? 'NOTED · TALK TO YOUR COACH →' : 'TALK TO YOUR COACH →'}
+              {votedToday ? 'NOTED · TALK TO EMBER →' : 'TALK TO EMBER →'}
             </Text>
           </Pressable>
         ) : (

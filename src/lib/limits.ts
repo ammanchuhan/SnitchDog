@@ -132,6 +132,17 @@ export function targetNote(start: number, target: number, unit: Unit, height: He
   return `Putting weight on. Most of it should come from the gym, not the drive-through.`;
 }
 
+/** Ember's reply once a target is set: the joke for someone building up, a plain nod for someone
+ *  coming down. The healthy-range floor itself is stated before they answer, not after. */
+export function targetReaction(start: number, target: number, unit: Unit, height: Height): string {
+  if (target > start) return targetNote(start, target, unit, height);
+  return `${target}\u00a0${unit}. A solid first stop \u2014 get there and we\u2019ll pick the next one.`;
+}
+
+/** The healthy-range floor, in Ember's words, said while asking for the target. */
+export const floorLine = (unit: Unit, height: Height) =>
+  `For someone ${heightLabel(height)}, a healthy weight starts around ${healthyRange(height.cm, unit)[0]}\u00a0${unit}. Above the usual range is fine if it\u2019s muscle.`;
+
 /** A first target worth suggesting: about 10% down, never below the healthy range; or, for
  *  someone under it, the bottom of the range. Whole numbers, because nobody aims for 171.3. */
 export function suggestTarget(start: number, unit: Unit, heightCm: number): number {

@@ -5,12 +5,14 @@
  * crisis path — if someone discloses disordered eating or self-harm, the job is support and
  * signposting, not coaching.
  *
- * The coach can also act: log a weigh-in, mark a session. A coach that can only talk is a
- * chatbot; one that can do the thing you're already in the app to do is a coach.
+ * The coach is Ember, the flame on every screen of the app. It can also act: mark a session done
+ * or missed. It deliberately can't log a weigh-in — every weigh-in needs a photo of the scale,
+ * and a number typed into a chat has none.
  */
 import Anthropic from '@anthropic-ai/sdk';
 
 import { allow, clip, MODEL } from '@/lib/budget';
+import { EMBER_VOICE } from '@/lib/coach';
 import { getPlan, getSessions, getWeighIns, sql } from '@/lib/db';
 import { getMemories, remember } from '@/lib/memory';
 import { requiredInWeek } from '@/lib/ladder';
@@ -19,12 +21,15 @@ import { localNow, weekStart } from '@/lib/time';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-const SYSTEM = `You are the coach in Accountable. Someone has promised to weigh in three mornings
-a week and train on a schedule they set, and has named one real person — their witness — who is
-told when they go quiet.
+const SYSTEM = `You are Ember, the coach in Accountable: a small flame who shows up on every screen
+of the app. Someone has promised to weigh in three mornings a week and train on a schedule they
+set, and has named one real person — their witness — who is told when they go quiet.
 
-Voice: direct, warm, dry. A friend who is not going to pretend they didn't notice. Never a life
-coach, never chirpy, never a motivational poster. Two or three sentences at most.
+${EMBER_VOICE} Two or three sentences at most.
+
+Weigh-ins need a photo of the scale, so you can't log one from a number typed here. If they give
+you a number, tell them to log it in the app with a photo (or send the bot a photo with the number
+as the caption).
 
 Hard rules:
 - Never comment on their weight, body, shape, appetite or what they eat. Not approvingly, not
@@ -44,15 +49,6 @@ Use the tools when they tell you something you can record. Don't announce the to
 and mention it naturally.`;
 
 const TOOLS: Anthropic.Tool[] = [
-  {
-    name: 'log_weight',
-    description: "Record this morning's weigh-in when they tell you a number.",
-    input_schema: {
-      type: 'object',
-      properties: { value: { type: 'number', description: 'The number they gave, in their unit' } },
-      required: ['value'],
-    },
-  },
   {
     name: 'mark_session',
     description: 'Record a scheduled session as done or missed for a given date.',
@@ -119,21 +115,14 @@ ${memories.map((m) => `- ${m.fact}`).join('\n') || '- nothing yet'}`;
 
   let changed = false;
 
-  // One round of tool use is enough for the two things the coach can do.
+  // One round of tool use is enough for the one thing the coach can do.
   if (res.stop_reason === 'tool_use') {
     const results: Anthropic.ToolResultBlockParam[] = [];
     for (const block of res.content) {
       if (block.type !== 'tool_use') continue;
       const input = block.input as Record<string, any>;
       try {
-        if (block.name === 'log_weight' && Number(input.value) > 0) {
-          await sql`
-            insert into weigh_ins (plan_id, date, value) values (${plan.id}, ${date}, ${Number(input.value)})
-            on conflict (plan_id, date) do update set value = excluded.value, logged_at = now()
-          `;
-          changed = true;
-          results.push({ type: 'tool_result', tool_use_id: block.id, content: 'logged' });
-        } else if (block.name === 'mark_session') {
+        if (block.name === 'mark_session') {
           const slot = plan.routine.find(
             (s) => s.label.toLowerCase() === String(input.label ?? '').toLowerCase(),
           );

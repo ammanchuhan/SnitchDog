@@ -41,7 +41,7 @@ export default function Memories() {
       </View>
 
       <Text variant="display" style={{ paddingTop: space(6), paddingBottom: space(4) }}>
-        What your coach remembers
+        What Ember remembers
       </Text>
       <Text variant="body" tone="dim" style={{ paddingBottom: space(8) }}>
         Written after your conversations, and used when it talks to you. Never used in anything
@@ -50,7 +50,7 @@ export default function Memories() {
 
       {!serverConfigured() ? (
         <Text variant="small" tone="faint">
-          Nothing yet — your coach isn&rsquo;t connected.
+          Nothing yet — Ember isn&rsquo;t connected.
         </Text>
       ) : memories === null ? (
         <Text variant="small" tone="faint">

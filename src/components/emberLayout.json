@@ -1,0 +1,46 @@
+{
+  "_": "How Ember's features sit on the body. Read by src/components/Ember.tsx and scripts/proof-rig.py, so the proof sheet shows exactly what the app draws. Positions are fractions of the body's height; scales normalise parts drawn at different sizes on the sheets (the closed and happy eyes came out spaced far wider than the open ones).",
+  "eyesBottom": 0.635,
+  "mouthTop": 0.672,
+  "centerX": 0.5,
+  "scale": {
+    "eyes-open": 1,
+    "eyes-blink": 0.68,
+    "eyes-happy": 0.74,
+    "eyes-sleepy": 0.74,
+    "eyes-worried": 0.86,
+    "eyes-determined": 0.86,
+    "mouth-smile": 1,
+    "mouth-laugh": 0.68,
+    "mouth-frown": 0.9,
+    "mouth-half": 0.8,
+    "mouth-yawn": 0.8,
+    "mouth-o": 1
+  },
+  "shoulders": [
+    {
+      "x": 0.06,
+      "y": 0.66
+    },
+    {
+      "x": 0.94,
+      "y": 0.66
+    }
+  ],
+  "limbScale": 0.85,
+  "canvas": {
+    "w": 1.9,
+    "h": 1.2
+  },
+  "hips": [
+    {
+      "x": 0.39,
+      "y": 0.93
+    },
+    {
+      "x": 0.61,
+      "y": 0.93
+    }
+  ],
+  "legScale": 0.75
+}
