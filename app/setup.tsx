@@ -191,15 +191,16 @@ export default function Setup() {
         return {
           lines: [
             'Now the part that makes this work.',
-            'Promises to yourself are easy to break quietly. So you’ll pick one person, your witness.',
-            'If you slip, I let them know, so someone who cares about you can check in. If you don’t, they never hear from me.',
+            'I’ll nudge you, and I’ll keep nudging. But I’m an AI. You can ignore me, and on a bad week you probably will.',
+            'Ignoring someone you respect is much harder. People keep promises because someone whose opinion matters would notice. So you’ll pick one person: your witness.',
+            'If you slip, I let them know, so they can check in. If you don’t, they never hear from me.',
           ],
           mood: 'determined',
         };
       case 'witness':
         return witness
           ? { lines: [`${witness}. Good choice.`, 'Here’s exactly what they’ll see.'], mood: 'happy' }
-          : { lines: ['Who should it be?', 'One person, not a group chat. Someone whose disappointment you’d actually feel.'], mood: 'happy' };
+          : { lines: ['Who should it be?', 'Someone whose respect you want, not someone who’d worry or police your plate. A mentor, a coach, a training partner, the sibling who’d give you a hard time.'], mood: 'happy' };
       case 'deal':
         return { lines: [`Here’s the deal, ${name}.`, 'Keep it and nobody hears a thing. Ready?'], mood: 'determined' };
     }
