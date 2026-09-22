@@ -8,31 +8,40 @@
     "userInterfaceStyle": "automatic",
     "backgroundColor": "#FBFAF8",
     "icon": "./assets/icon.png",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#FBFAF8",
-      "dark": {
-        "backgroundColor": "#121211"
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.ammanchuhan.accountable",
+      "buildNumber": "1",
+      "userInterfaceStyle": "automatic",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.accountable.app",
-      "userInterfaceStyle": "automatic"
-    },
     "android": {
-      "package": "com.accountable.app",
+      "package": "com.ammanchuhan.accountable",
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundColor": "#0E1013"
-      },
-      "edgeToEdgeEnabled": true
+      }
     },
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-splash-screen",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "backgroundColor": "#FBFAF8",
+          "dark": {
+            "backgroundColor": "#121211"
+          }
+        }
+      ],
       [
         "expo-image-picker",
         {
