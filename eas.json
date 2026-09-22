@@ -1,0 +1,18 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://accountable-rouge.vercel.app",
+        "EXPO_PUBLIC_BOT_URL": ""
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
