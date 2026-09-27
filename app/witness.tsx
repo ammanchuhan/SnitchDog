@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
 
@@ -18,6 +19,7 @@ import { radius, space, useTheme } from '../src/theme';
  *
  *  Nobody hands over a friend's attention blind, so the exact messages come before the invite. */
 export default function WitnessScreen() {
+  const router = useRouter();
   const { plan, update } = usePlan();
   const dismiss = useDismiss();
   const t = useTheme();
@@ -109,9 +111,20 @@ export default function WitnessScreen() {
         onPress={() => shareInvite(plan)}
       />
       {!witness.linked && (
-        <Text variant="small" tone="faint" center style={{ paddingTop: space(3) }}>
-          Nothing counts until {witness.name} taps it.
-        </Text>
+        <>
+          <Text variant="small" tone="faint" center style={{ paddingTop: space(3) }}>
+            Nothing counts until {witness.name} taps it.
+          </Text>
+          {/* Arriving here straight from sign-up, 'Back' reads as 'undo the sign-up' — and on a
+              simulator, or anywhere the share sheet has nowhere to send to, there was no way
+              forward at all. The invite can always be sent later from this same screen. */}
+          <Button
+            label="I’ll send it later"
+            variant="ghost"
+            onPress={() => router.replace('/today')}
+            style={{ marginTop: space(2) }}
+          />
+        </>
       )}
 
       <View style={{ height: 1, backgroundColor: t.lineSoft, marginTop: space(10), marginBottom: space(6) }} />

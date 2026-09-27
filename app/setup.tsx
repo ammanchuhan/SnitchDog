@@ -9,17 +9,16 @@ import { Choice } from '../src/components/Choice';
 import { Ember, EmberMood } from '../src/components/Ember';
 import { Field } from '../src/components/Field';
 import { HeightField } from '../src/components/HeightField';
-import { HourPicker, hourLabel } from '../src/components/HourPicker';
-import { RoutineEditor } from '../src/components/RoutineEditor';
+import { hourLabel } from '../src/components/HourPicker';
 import { SpeechBubble, useSettled } from '../src/components/SpeechBubble';
 import { Text } from '../src/components/Text';
 import { WitnessRole } from '../src/components/WitnessRole';
 import { shortId } from '../src/lib/id';
 import { checkTarget, checkWeight, floorLine, heightOf, suggestTarget, targetReaction } from '../src/lib/limits';
-import { buildRoutine, COMMITMENT, PACE, SCHEDULE, TRAIN_TIME, workoutsFor } from '../src/lib/planner';
+import { PACE } from '../src/lib/planner';
 import { usePlan } from '../src/lib/store';
-import type { Commitment, HeightUnit, Pace, Plan, RoutineSlot, Schedule, TrainTime } from '../src/lib/types';
-import { WEEKDAY_LABEL, WEIGH_INS_PER_WEEK } from '../src/lib/types';
+import type { Gender, HeightUnit, Pace, Plan } from '../src/lib/types';
+import { WEIGH_INS_PER_WEEK } from '../src/lib/types';
 import { radius, space, useTheme } from '../src/theme';
 
 /** One screen per step, and never more than one or two related questions on it. The explainer
@@ -29,14 +28,11 @@ const STEPS = [
   'how',
   'name',
   'age',
+  'gender',
   'body',
   'target',
   'data',
   'pace',
-  'commitment',
-  'day',
-  'train',
-  'plan',
   'why',
   'witness',
   'deal',
@@ -54,11 +50,6 @@ const PACE_MORE: Record<Pace, string> = {
   steady: 'It’s the version people actually keep.',
   moderate: 'It’s what most people can hold, and you’ll still see it working.',
   fast: 'I’ll add a workout to your week. Tell me if it gets to be too much.',
-};
-const COMMIT_REPLY: Record<Commitment, [string, string, EmberMood]> = {
-  easing: ['Smart.', 'Habit first, intensity later. Two workouts a week.', 'happy'],
-  serious: ['Serious. I like it.', 'Three workouts a week is a good place to start.', 'proud'],
-  all_in: ['All in. I’ll hold you to that.', 'Four workouts a week. Only if your week really has room.', 'determined'],
 };
 
 /** Sign-up: Ember asks, you answer, one thing at a time.
@@ -81,11 +72,11 @@ export default function Setup() {
   const [startValue, setStartValue] = useState('');
   const [targetValue, setTargetValue] = useState('');
   const [pace, setPace] = useState<Pace>();
-  const [commitment, setCommitment] = useState<Commitment>();
-  const [schedule, setSchedule] = useState<Schedule>();
-  const [wakeHour, setWakeHour] = useState(7);
-  const [trainTime, setTrainTime] = useState<TrainTime>();
-  const [routine, setRoutine] = useState<RoutineSlot[]>([]);
+  const [gender, setGender] = useState<Gender>();
+  // Workouts are no longer set up here — see app/workout.tsx. The morning ask still needs an
+  // hour, and it is not something anyone can be asked to predict, so it starts at 7 and is
+  // changed on the Plan screen like any other setting.
+  const DEFAULT_WAKE_HOUR = 7;
   const [witnessName, setWitnessName] = useState('');
 
   const current: Step = STEPS[step];
@@ -111,14 +102,11 @@ export default function Setup() {
     how: true,
     name: name.length > 0,
     age: ageNum >= 18 && ageNum <= 100,
+    gender: !!gender,
     body: !!height && startNum > 0 && !startProblem,
     target: targetNum > 0 && !targetProblem,
     data: true,
     pace: !!pace,
-    commitment: !!commitment,
-    day: !!schedule,
-    train: !!trainTime,
-    plan: true,
     why: true,
     witness: witness.length > 0,
     deal: true,
@@ -145,6 +133,11 @@ export default function Setup() {
         return settledAge > 0 && settledAge < 18
           ? { lines: ['I’m only for adults.', 'A weight goal and someone reporting on you isn’t the right setup under 18.'], mood: 'worried' }
           : { lines: [`Nice to meet you, ${name}.`, 'How old are you?'], mood: 'laugh' };
+      case 'gender':
+        return {
+          lines: ['And are you a man or a woman?', 'It changes what a sensible workout week looks like. Skip it if you’d rather.'],
+          mood: 'happy',
+        };
       case 'body':
         return settledStartProblem
           ? { lines: ['Hmm, that doesn’t look right.', settledStartProblem], mood: 'worried' }
@@ -168,25 +161,6 @@ export default function Setup() {
         return pace
           ? { lines: [PACE_REPLY[pace][0], PACE_MORE[pace]], mood: PACE_REPLY[pace][1] }
           : { lines: ['How fast do you want to see results?', 'Progress won’t be a straight line either way. Some weeks stall, some jump.'], mood: 'happy' };
-      case 'commitment':
-        return commitment
-          ? { lines: [COMMIT_REPLY[commitment][0], COMMIT_REPLY[commitment][1]], mood: COMMIT_REPLY[commitment][2] }
-          : { lines: ['How committed are you feeling?', 'Be honest. A plan you keep beats a plan that sounds good.'], mood: 'determined' };
-      case 'day':
-        return {
-          lines: ['What does your week look like, and when do you get up?', 'I ask for the scale photo when you wake up. First thing, before food and water, is the only honest comparison.'],
-          mood: 'sleepy',
-        };
-      case 'train':
-        return { lines: ['When do you like to train?', 'I’ll check in after, not before.'], mood: 'happy' };
-      case 'plan':
-        return {
-          lines: [
-            'Here’s what I’d suggest.',
-            `${commitment && pace ? workoutsFor(commitment, pace) : 3} workouts a week. Change anything that doesn’t fit your week.`,
-          ],
-          mood: 'proud',
-        };
       case 'why':
         return {
           lines: [
@@ -207,10 +181,6 @@ export default function Setup() {
   }
 
   function next() {
-    // The plan is built from the answers when you reach it; change an answer and it's rebuilt.
-    if (current === 'train' && commitment && pace && schedule && trainTime) {
-      setRoutine(buildRoutine({ commitment, pace, schedule, trainTime, wakeHour }));
-    }
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
   }
 
@@ -220,9 +190,11 @@ export default function Setup() {
       ownerName: name,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       createdAt: new Date().toISOString(),
-      goal: { unit, start: startNum, target: targetNum, wakeHour, perWeek: WEIGH_INS_PER_WEEK },
-      profile: { heightCm, heightUnit, age: ageNum, schedule, trainTime, commitment, pace },
-      routine: routine.filter((s) => s.days.length > 0 && s.label.trim().length > 0),
+      goal: { unit, start: startNum, target: targetNum, wakeHour: DEFAULT_WAKE_HOUR, perWeek: WEIGH_INS_PER_WEEK },
+      profile: { heightCm, heightUnit, age: ageNum, gender, pace },
+      // Workouts are set up afterwards, on their own screen — an empty routine simply means the
+      // session half of the ladder stays quiet until there is something to ask about.
+      routine: [],
       witness: { name: witness, linked: false, inviteToken: shortId(16) },
       weighIns: [],
       sessions: [],
@@ -305,42 +277,20 @@ export default function Setup() {
             )}
           </View>
         );
-      case 'pace':
-        return <Choice value={pace} onChange={setPace} options={keys(PACE).map((k) => ({ key: k, label: PACE[k].label, note: PACE[k].note }))} />;
-      case 'commitment':
+      case 'gender':
         return (
           <Choice
-            value={commitment}
-            onChange={setCommitment}
-            options={keys(COMMITMENT).map((k) => ({ key: k, label: COMMITMENT[k].label, note: COMMITMENT[k].note }))}
+            value={gender}
+            onChange={setGender}
+            options={[
+              { key: 'man' as const, label: 'Man' },
+              { key: 'woman' as const, label: 'Woman' },
+              { key: 'unspecified' as const, label: 'Rather not say' },
+            ]}
           />
         );
-      case 'day':
-        return (
-          <View style={{ gap: space(5) }}>
-            <Choice value={schedule} onChange={setSchedule} options={keys(SCHEDULE).map((k) => ({ key: k, label: SCHEDULE[k] }))} />
-            <View style={{ gap: space(2) }}>
-              <Text variant="micro" tone="faint">
-                I GET UP AROUND
-              </Text>
-              <HourPicker value={wakeHour} onChange={setWakeHour} from={4} to={12} />
-            </View>
-          </View>
-        );
-      case 'train':
-        return <Choice value={trainTime} onChange={setTrainTime} options={keys(TRAIN_TIME).map((k) => ({ key: k, label: TRAIN_TIME[k] }))} />;
-      case 'plan':
-        return (
-          <View style={{ gap: space(3) }}>
-            <RoutineEditor routine={routine} onChange={setRoutine} />
-            <Card style={{ gap: space(1) }}>
-              <Text variant="bodyStrong">Plus {WEIGH_INS_PER_WEEK} weigh-ins a week</Text>
-              <Text variant="small" tone="dim">
-                Any {WEIGH_INS_PER_WEEK} mornings, each with a photo of the scale.
-              </Text>
-            </Card>
-          </View>
-        );
+      case 'pace':
+        return <Choice value={pace} onChange={setPace} options={keys(PACE).map((k) => ({ key: k, label: PACE[k].label, note: PACE[k].note }))} />;
       case 'witness':
         return (
           <View style={{ gap: space(4) }}>
@@ -353,27 +303,13 @@ export default function Setup() {
           <Card tone="ember" style={{ gap: space(4) }}>
             <View style={{ gap: space(1) }}>
               <Text variant="micro" tone="ember">
-                MORNINGS AT {hourLabel(wakeHour).toUpperCase()}
+                MORNINGS AT {hourLabel(DEFAULT_WAKE_HOUR).toUpperCase()}
               </Text>
               <Text variant="heading">A photo on the scale</Text>
               <Text variant="small" tone="dim">
                 {WEIGH_INS_PER_WEEK} mornings a week. The rest are yours.
               </Text>
             </View>
-            {routine.length > 0 && (
-              <>
-                <View style={{ height: 1, backgroundColor: t.ember, opacity: 0.25 }} />
-                <View style={{ gap: space(1) }}>
-                  {routine.map((r) => (
-                    <Text key={r.id} variant="small" tone="dim">
-                      <Text variant="bodyStrong">{r.label}</Text>
-                      {' — '}
-                      {r.days.map((d) => WEEKDAY_LABEL[d]).join(', ')}, I ask at {hourLabel(r.hour)}
-                    </Text>
-                  ))}
-                </View>
-              </>
-            )}
             <View style={{ height: 1, backgroundColor: t.ember, opacity: 0.25 }} />
             <Text variant="body" tone="dim">
               Go quiet, or finish a week short, and{' '}
@@ -422,11 +358,9 @@ export default function Setup() {
                 ? 'Hi, Ember'
                 : explainer
                   ? 'Got it'
-                  : current === 'plan'
-                    ? 'Looks good'
-                    : current === 'deal'
-                      ? 'Make it real'
-                      : 'Continue'
+                  : current === 'deal'
+                    ? 'Make it real'
+                    : 'Continue'
             }
             onPress={current === 'deal' ? begin : next}
             disabled={!valid[current]}
