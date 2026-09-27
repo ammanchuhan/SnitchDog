@@ -15,7 +15,7 @@ const ember = {
 };
 
 const light = {
-  bg: '#FBFAF8',
+  bg: '#FAF7F2',
   surface: '#FFFFFF',
   surfaceHigh: '#F2EFE9',
   line: '#E4DFD6',
@@ -24,6 +24,13 @@ const light = {
   text: '#16150F',
   textDim: '#6B665C',
   textFaint: '#9C978C',
+
+  /** The brand's own colour, and what a primary action is made of. Ember is no longer it. */
+  ink: '#16150F',
+  onInk: '#FAF7F2',
+  /** Tertiary. Quiet warm fill for anything that needs to sit back. */
+  clay: '#C8B9A0',
+  claySoft: '#EDE5D9',
 
   ember: ember.base,
   emberSoft: '#FDE8E1',
@@ -46,6 +53,12 @@ const dark: typeof light = {
   text: '#F6F4EF',
   textDim: '#A09A8F',
   textFaint: '#6E6960',
+
+  // Inverted, not re-picked: on a dark ground the "ink" that carries a primary action is light.
+  ink: '#F6F4EF',
+  onInk: '#121211',
+  clay: '#4A4237',
+  claySoft: '#2A251E',
 
   ember: ember.bright,
   emberSoft: '#3A1A12',
@@ -78,13 +91,21 @@ export const font = {
   semibold: 'PlusJakartaSans_600SemiBold',
   bold: 'PlusJakartaSans_700Bold',
   extrabold: 'PlusJakartaSans_800ExtraBold',
+  /** Fraunces carries the headlines and Ember's voice. Its soft terminals are the nearest a
+   *  typeface gets to the scissor-cut paper Ember is drawn from. */
+  serif: 'Fraunces_400Regular',
+  serifMedium: 'Fraunces_500Medium',
+  serifBold: 'Fraunces_600SemiBold',
 } as const;
 
 /** Numbers carry this product, so they get their own scale and tabular figures. */
 export const type = {
+  // `hero` is the weigh-in number and nothing else — it stays sans so it keeps tabular figures
+  // and does not shift width as it changes.
   hero: { fontFamily: font.extrabold, fontSize: 60, letterSpacing: -2.5 },
-  display: { fontFamily: font.bold, fontSize: 38, letterSpacing: -1.2 },
-  title: { fontFamily: font.bold, fontSize: 26, letterSpacing: -0.7 },
+  display: { fontFamily: font.serifBold, fontSize: 38, letterSpacing: -0.6 },
+  title: { fontFamily: font.serifBold, fontSize: 26, letterSpacing: -0.3 },
+  // Sans: `heading` labels stat cards and numbers as often as it heads anything.
   heading: { fontFamily: font.semibold, fontSize: 19, letterSpacing: -0.3 },
   body: { fontFamily: font.regular, fontSize: 16, lineHeight: 24 },
   bodyStrong: { fontFamily: font.semibold, fontSize: 16, lineHeight: 24 },

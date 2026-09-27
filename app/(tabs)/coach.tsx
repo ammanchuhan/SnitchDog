@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 
 import { CoachNote } from '../../src/components/CoachNote';
 import { Text } from '../../src/components/Text';
+import { TAB_BAR_CLEARANCE } from '../../src/components/TabBar';
 import { askCoach, ChatTurn, serverConfigured } from '../../src/lib/api';
 import { loadChat, saveChat } from '../../src/lib/chat';
 import { usePlan } from '../../src/lib/store';
@@ -136,7 +137,9 @@ export default function Chat() {
             gap: space(3),
             paddingHorizontal: space(6),
             paddingTop: space(3),
-            paddingBottom: space(3),
+            // The composer is pinned to the bottom, so it is what has to clear the floating
+            // pill — the scroll content above it just stops at the composer.
+            paddingBottom: TAB_BAR_CLEARANCE,
             borderTopWidth: 1,
             borderTopColor: t.lineSoft,
           }}

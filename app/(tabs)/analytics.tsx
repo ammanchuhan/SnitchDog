@@ -43,7 +43,7 @@ export default function Analytics() {
       : undefined;
 
   return (
-    <Screen edges={['top']} style={{ paddingBottom: space(16) }}>
+    <Screen edges={['top']}>
       <Text variant="micro" tone="faint" style={{ paddingTop: space(6) }}>
         ANALYTICS
       </Text>

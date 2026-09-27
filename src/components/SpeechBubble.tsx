@@ -90,10 +90,12 @@ export function SpeechBubble({ lines, style }: { lines: string[]; style?: ViewSt
           <Text
             key={i}
             style={{
-              fontFamily: i === 0 ? font.bold : font.medium,
-              fontSize: i === 0 ? 21 : 16,
-              lineHeight: i === 0 ? 27 : 23,
-              letterSpacing: i === 0 ? -0.3 : 0,
+              // Ember's opening line is the character speaking, so it gets the serif; the
+              // explanation under it stays sans, where longer text reads more easily small.
+              fontFamily: i === 0 ? font.serifBold : font.medium,
+              fontSize: i === 0 ? 22 : 16,
+              lineHeight: i === 0 ? 29 : 23,
+              letterSpacing: i === 0 ? -0.1 : 0,
               color: i === 0 ? t.text : t.textDim,
             }}
           >
