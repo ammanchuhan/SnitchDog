@@ -1,4 +1,9 @@
 import {
+  Fraunces_400Regular,
+  Fraunces_500Medium,
+  Fraunces_600SemiBold,
+} from '@expo-google-fonts/fraunces';
+import {
   PlusJakartaSans_400Regular,
   PlusJakartaSans_500Medium,
   PlusJakartaSans_600SemiBold,
@@ -26,6 +31,9 @@ export default function RootLayout() {
     PlusJakartaSans_600SemiBold,
     PlusJakartaSans_700Bold,
     PlusJakartaSans_800ExtraBold,
+    Fraunces_400Regular,
+    Fraunces_500Medium,
+    Fraunces_600SemiBold,
   });
 
   useEffect(() => {
@@ -47,6 +55,8 @@ export default function RootLayout() {
             }}
           >
             <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+            {/* No swipe back out of sign-in: there is nothing behind it. */}
+            <Stack.Screen name="auth" options={{ gestureEnabled: false, animation: 'fade' }} />
             <Stack.Screen name="plan" />
             <Stack.Screen name="log" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
           </Stack>
