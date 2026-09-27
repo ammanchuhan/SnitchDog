@@ -10,12 +10,13 @@ import { HourPicker, hourLabel } from '../src/components/HourPicker';
 import { RoutineEditor } from '../src/components/RoutineEditor';
 import { Screen } from '../src/components/Screen';
 import { Text } from '../src/components/Text';
-import { deletePlan, ownerLinkUrl } from '../src/lib/api';
+import { ownerLinkUrl } from '../src/lib/api';
+import { deleteAccount, signOut } from '../src/lib/session';
 import { checkTarget, convert, heightOf, targetNote } from '../src/lib/limits';
 import { usePlan } from '../src/lib/store';
 import { useDismiss } from '../src/lib/nav';
 import type { HeightUnit, RoutineSlot } from '../src/lib/types';
-import { WEIGH_INS_PER_WEEK } from '../src/lib/types';
+import { WEIGH_INS_PER_WEEK, currentAverage } from '../src/lib/types';
 import { radius, space, useTheme } from '../src/theme';
 
 /** Everything set during onboarding, changeable afterwards. Reached from the gear on Home: it's
@@ -48,6 +49,12 @@ function PlanForm() {
   useEffect(() => setSaved(false), [target, unit, wakeHour, routine, heightCm, heightUnit]);
 
   if (!plan) return null;
+  // Same basis as the progress bar: an average, never a single morning.
+  const average = currentAverage(plan);
+  const reachedTarget =
+    average !== undefined &&
+    (plan.goal.target <= plan.goal.start ? average <= plan.goal.target : average >= plan.goal.target);
+
   // The start stays in the unit it was recorded in; compare like with like.
   const targetProblem = checkTarget(convert(plan.goal.start, plan.goal.unit, unit), Number(target), unit, height);
   const valid = Number(target) > 0 && !targetProblem;
@@ -172,9 +179,43 @@ function PlanForm() {
         </Section>
 
 
+        {/* Leaving, in two strengths. Signing out is reversible and says so; erasure is not,
+            and is worded so nobody reaches for it expecting a fresh week. */}
+        <View style={{ paddingTop: space(12), gap: space(3) }}>
+          <Text variant="micro" tone="faint">
+            ACCOUNT
+          </Text>
+          <Text variant="small" tone="dim">
+            Signing out leaves everything where it is. Your witness keeps watching, and the
+            check-ins keep arriving — sign back in on any phone to pick it up.
+          </Text>
+          <Pressable
+            onPress={() =>
+              Alert.alert('Sign out?', 'Your plan stays on our server and nothing stops.', [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Sign out',
+                  onPress: async () => {
+                    await signOut();
+                    // The device copy goes too: the next person to open this phone is not
+                    // necessarily the person whose weigh-ins these are.
+                    await clear();
+                    router.replace('/');
+                  },
+                },
+              ])
+            }
+            hitSlop={8}
+          >
+            <Text variant="label" tone="ember">
+              Sign out
+            </Text>
+          </Pressable>
+        </View>
+
         {/* Not a reset. History is append-only — wiping a bad week is cheating with extra
             steps — but erasure has to exist, so it lives here, named for what it is. */}
-        <View style={{ paddingTop: space(12), gap: space(3) }}>
+        <View style={{ paddingTop: space(10), gap: space(3) }}>
           <Text variant="micro" tone="faint">
             YOUR DATA
           </Text>
@@ -186,14 +227,24 @@ function PlanForm() {
             onPress={() =>
               Alert.alert(
                 'Delete your account and data?',
-                'Every weigh-in, every session and your witness link are erased from this phone and from our server. This is permanent, and it is not a way to start the week again.',
+                // What the witness hears is stated plainly, because it is the one fact that
+                // changes the decision. Disclosure, not a hurdle: §8.1 puts anything that makes
+                // leaving harder out of bounds, so there are no extra taps and no guilt.
+                'Every weigh-in, every session and your witness link are erased from this phone and from our server. This is permanent, and it is not a way to start the week again.' +
+                  (plan.witness.linked
+                    ? reachedTarget
+                      ? `\n\n${plan.witness.name} will be told you reached what you set out to do, and then nothing more.`
+                      : `\n\n${plan.witness.name} will be told the promise has ended.`
+                    : ''),
                 [
                   { text: 'Cancel', style: 'cancel' },
                   {
                     text: 'Delete everything',
                     style: 'destructive',
                     onPress: async () => {
-                      await deletePlan(plan.id);
+                      // Deleting the account cascades the plan, the entries, the coach's
+                      // memory and both chat links. The device is cleared either way.
+                      await deleteAccount();
                       await clear();
                       router.replace('/');
                     },
