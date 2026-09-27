@@ -9,6 +9,7 @@ import { DayStrip } from '../../src/components/DayStrip';
 import { Figure, Section } from '../../src/components/Figure';
 import { hourLabel } from '../../src/components/HourPicker';
 import { Text } from '../../src/components/Text';
+import { TAB_BAR_CLEARANCE } from '../../src/components/TabBar';
 import { shareInvite } from '../../src/lib/invite';
 import { checkTarget, heightOf } from '../../src/lib/limits';
 import { photoUri } from '../../src/lib/photos';
@@ -76,7 +77,7 @@ export default function Home() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }} edges={['top']}>
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: space(6), paddingBottom: space(16) }}
+        contentContainerStyle={{ paddingHorizontal: space(6), paddingBottom: TAB_BAR_CLEARANCE }}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={t.textFaint} />}
       >
