@@ -7,7 +7,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-import { fetchPlan, pushPlan } from './api';
+import { fetchMyPlan, fetchPlan, pushPlan } from './api';
+import { loadToken } from './session';
 import { deletePhoto } from './photos';
 import { Plan, Session, SessionStatus, toDate, WeighIn } from './types';
 
@@ -24,6 +25,8 @@ type Ctx = {
   /** Editing the plan: goal, wake time, routine, witness. */
   update: (patch: Partial<Plan>) => Promise<void>;
   refresh: () => Promise<void>;
+  /** Pull this account's plan down after signing in on a device that has nothing stored. */
+  hydrate: () => Promise<Plan | null>;
   clear: () => Promise<void>;
 };
 
@@ -43,12 +46,31 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  /** Nothing on this device, but somebody is signed in: a new phone, or the same one after
+   *  signing out. Their plan lives on the server — fetch it rather than sending them through
+   *  onboarding as if they were new. Writes straight to storage instead of going through
+   *  `persist`, which would push the plan we just received back up again. */
+  const hydrate = useCallback(async () => {
+    if (!(await loadToken())) return null;
+    const remote = await fetchMyPlan();
+    if (!remote) return null;
+    setPlan(remote);
+    await AsyncStorage.setItem(KEY, JSON.stringify(remote));
+    return remote;
+  }, []);
+
   useEffect(() => {
     (async () => {
       const raw = await AsyncStorage.getItem(KEY);
-      if (raw) setPlan(JSON.parse(raw) as Plan);
+      if (raw) {
+        setPlan(JSON.parse(raw) as Plan);
+      } else {
+        await hydrate();
+      }
       setReady(true);
     })();
+    // hydrate is stable; this runs once, and signing in calls it again itself.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const refresh = useCallback(async () => {
@@ -116,8 +138,8 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
   const clear = useCallback(() => persist(null), [persist]);
 
   const value = useMemo(
-    () => ({ ready, plan, start, logWeight, answerSession, update, refresh, clear }),
-    [ready, plan, start, logWeight, answerSession, update, refresh, clear],
+    () => ({ ready, plan, start, logWeight, answerSession, update, refresh, hydrate, clear }),
+    [ready, plan, start, logWeight, answerSession, update, refresh, hydrate, clear],
   );
 
   return <PlanContext.Provider value={value}>{children}</PlanContext.Provider>;

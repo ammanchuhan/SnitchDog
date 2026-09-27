@@ -87,3 +87,35 @@ create table if not exists ai_usage (
   calls int  not null default 0,
   primary key (day, scope)
 );
+
+-- ── Accounts ────────────────────────────────────────────────────────────────────────────
+-- Added 2026-09-23. Until now any client could read or write any plan by id (spec §7 Gap 1).
+-- A plan now belongs to an account, and every client query is scoped by the bearer token.
+
+create table if not exists accounts (
+  id            text primary key,
+  -- Null when the account is Apple-only and the person chose to hide their email.
+  email         text unique,
+  -- Null for Apple-only accounts. scrypt, stored as salt:hash.
+  password_hash text,
+  -- Apple's stable 'sub' claim: unique per developer team, never reused.
+  apple_user_id text unique,
+  created_at    timestamptz not null default now()
+);
+
+-- Opaque bearer tokens, stored as sha256 so a database leak does not hand over live sessions.
+create table if not exists auth_tokens (
+  token_hash   text primary key,
+  account_id   text        not null references accounts (id) on delete cascade,
+  created_at   timestamptz not null default now(),
+  last_seen_at timestamptz not null default now()
+);
+
+create index if not exists auth_tokens_account on auth_tokens (account_id);
+
+alter table plans add column if not exists account_id text references accounts (id) on delete cascade;
+create index if not exists plans_account on plans (account_id);
+
+-- Sign in with Google. Same shape as Apple: the provider's stable subject is the key, and the
+-- email is only ever a convenience for linking an account the person already made.
+alter table accounts add column if not exists google_user_id text unique;

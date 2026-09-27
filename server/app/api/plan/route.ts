@@ -1,22 +1,54 @@
-import { sql } from '@/lib/db';
+import { accountFor, unauthorized } from '@/lib/auth';
+import { type PlanRow, sql } from '@/lib/db';
+import { serialisePlan } from '@/lib/serialise';
 
 export const dynamic = 'force-dynamic';
 
+/** The signed-in account's plan, without needing to know its id.
+ *
+ *  This is what makes an account worth having: sign in on a new phone, or after signing out,
+ *  and there is something to come back to. Without it the app can only ever find a plan it
+ *  already had on the device, and signing in drops you into onboarding as if you were new. */
+export async function GET(req: Request) {
+  const account = await accountFor(req);
+  if (!account) return unauthorized();
+
+  const rows = (await sql`
+    select * from plans where account_id = ${account.id} order by created_at limit 1
+  `) as PlanRow[];
+  if (!rows.length) return new Response('no plan', { status: 404 });
+
+  return Response.json(await serialisePlan(rows[0]));
+}
+
 /** The app pushes the whole plan on every change. The server keeps its own columns — who has
  *  been told, who is linked, how far a follow-up has gone — and never lets the client
- *  overwrite them. */
+ *  overwrite them. The caller must own the plan: an id alone is not authorization. */
 export async function PUT(req: Request) {
+  const account = await accountFor(req);
+  if (!account) return unauthorized();
+
   const p = await req.json();
   if (!p?.id || !p?.witness?.inviteToken || !p?.goal) {
     return new Response('bad plan', { status: 400 });
   }
 
+  // An existing plan belonging to someone else is not ours to overwrite. A plan with no
+  // account_id predates accounts; there are none in production, but claiming one silently
+  // would be the wrong default, so it is refused too.
+  const owner = (await sql`select account_id from plans where id = ${p.id}`) as {
+    account_id: string | null;
+  }[];
+  if (owner.length && owner[0].account_id !== account.id) {
+    return new Response('forbidden', { status: 403 });
+  }
+
   await sql`
     insert into plans
-      (id, owner_name, timezone, created_at, unit, start_value, target_value, wake_hour,
-       per_week, routine, witness_name, witness_token)
+      (id, account_id, owner_name, timezone, created_at, unit, start_value, target_value,
+       wake_hour, per_week, routine, witness_name, witness_token)
     values
-      (${p.id}, ${p.ownerName ?? ''}, ${p.timezone}, ${p.createdAt}, ${p.goal.unit},
+      (${p.id}, ${account.id}, ${p.ownerName ?? ''}, ${p.timezone}, ${p.createdAt}, ${p.goal.unit},
        ${p.goal.start}, ${p.goal.target}, ${p.goal.wakeHour}, ${p.goal.perWeek},
        ${JSON.stringify(p.routine ?? [])}, ${p.witness.name}, ${p.witness.inviteToken})
     on conflict (id) do update

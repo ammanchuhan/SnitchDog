@@ -4,6 +4,7 @@
  * actually messages you and your witness, because escalation has to happen while the app is
  * closed. When no API URL is configured the app runs standalone and says so.
  */
+import { currentToken } from './session';
 import type { Plan } from './types';
 
 const BASE = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '') ?? '';
@@ -12,10 +13,18 @@ export const serverConfigured = () => BASE.length > 0;
 
 async function call<T>(path: string, init?: RequestInit): Promise<T | null> {
   if (!BASE) return null;
+  // Every plan route is scoped to the signed-in account now, so a call without a token is a
+  // guaranteed 401 — not worth the round trip.
+  const token = currentToken();
+  if (!token) return null;
   try {
     const res = await fetch(`${BASE}${path}`, {
       ...init,
-      headers: { 'content-type': 'application/json', ...(init?.headers ?? {}) },
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${token}`,
+        ...(init?.headers ?? {}),
+      },
     });
     if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
     return (await res.json()) as T;
@@ -37,8 +46,9 @@ export const pushPlan = ({ profile, ...rest }: Plan) =>
 
 export const fetchPlan = (id: string) => call<Plan>(`/api/plan/${id}`);
 
-/** Erasure, not a reset — see the plan screen. Best effort: the device copy goes either way. */
-export const deletePlan = (id: string) => call<{ ok: true }>(`/api/plan/${id}`, { method: 'DELETE' });
+/** The signed-in account's plan, without knowing its id — how a device with nothing stored
+ *  locally gets its plan back after signing in. Null when this account has never made one. */
+export const fetchMyPlan = () => call<Plan>('/api/plan');
 
 const BOT = process.env.EXPO_PUBLIC_BOT_URL?.replace(/\/$/, '') ?? '';
 

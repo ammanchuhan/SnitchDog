@@ -24,7 +24,9 @@ export type Moment =
   | { kind: 'told_them' }
   | { kind: 'witness_week'; done: number; required: number }
   | { kind: 'witness_sessions'; missed: number }
-  | { kind: 'witness_welcome' };
+  | { kind: 'witness_welcome' }
+  | { kind: 'witness_ended' }
+  | { kind: 'witness_finished' };
 
 /** Ember's personality, shared by the nudges and the chat so the coach is one character. */
 export const EMBER_VOICE = `Voice: Ember — warm, direct, a little mischievous, dry rather than chirpy. A friend who is on
@@ -76,6 +78,10 @@ const templates = (p: PlanRow, m: Moment): string => {
       return `${p.owner_name} has missed ${m.missed} sessions in a row. Worth a nudge from you.`;
     case 'witness_welcome':
       return `I'm Ember, ${p.owner_name}'s coach. You're now their witness: they promised to weigh in ${p.per_week} mornings a week and train on schedule. If they keep their word, you won't hear from me again.`;
+    case 'witness_ended':
+      return `${p.owner_name} has closed their account, so the promise you were witness to has ended. You won't hear from me again.`;
+    case 'witness_finished':
+      return `${p.owner_name} reached what they set out to do and closed their account. You were their witness for it. You won't hear from me again.`;
   }
 };
 
@@ -90,6 +96,10 @@ const SITUATION: Record<Moment['kind'], string> = {
   witness_week: 'Tell the witness the week came up short and ask them to check in. Do not shame anyone.',
   witness_sessions: 'Tell the witness about a run of missed sessions and ask them to check in.',
   witness_welcome: 'They just accepted. Tell them what they signed up for and that they will rarely hear from you.',
+  witness_ended:
+    'The person has deleted their account before reaching their goal. Tell the witness plainly that it has ended and they will hear nothing more. Do not editorialise, do not imply failure, and do not ask the witness to do anything — there is nothing left to check in on.',
+  witness_finished:
+    'The person reached their goal and closed their account. Tell the witness it is finished and that they were part of it. Warm, brief, and still nothing about any number.',
 };
 
 export async function write(p: PlanRow, history: string, m: Moment): Promise<string> {
