@@ -9,7 +9,7 @@
  */
 import * as SecureStore from 'expo-secure-store';
 
-const KEY = 'accountable.session.v1';
+const KEY = 'snitchdog.session.v1';
 
 /** AFTER_FIRST_UNLOCK rather than WHEN_UNLOCKED, because a background task — the gym check, when
  *  it lands — has to read this while the phone is locked. THIS_DEVICE_ONLY keeps the token out

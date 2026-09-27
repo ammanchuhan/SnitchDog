@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { ChatTurn } from './api';
 
-const KEY = 'accountable.chat.v1';
+const KEY = 'snitchdog.chat.v1';
 const KEEP = 100;
 
 export const loadChat = async (): Promise<ChatTurn[]> => {

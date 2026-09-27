@@ -1,4 +1,4 @@
-# Accountable — illustration style
+# SnitchDog — illustration style
 
 Accountable has its own look, separate from ammanchuhan.com: **Ember**, a small flame, in a
 **cut-paper and felt-tip marker** style. **Ember is the AI coach**: the voice of the morning

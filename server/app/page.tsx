@@ -3,7 +3,7 @@
 export default function Page() {
   return (
     <main style={{ maxWidth: 520, margin: '18vh auto', padding: '0 24px', lineHeight: 1.6 }}>
-      <h1 style={{ fontSize: 44, letterSpacing: -1.5, margin: 0 }}>Accountable</h1>
+      <h1 style={{ fontSize: 44, letterSpacing: -1.5, margin: 0 }}>SnitchDog</h1>
       <p style={{ color: '#A09A8F' }}>
         One promise, one witness. If you go quiet, they hear about it.
       </p>

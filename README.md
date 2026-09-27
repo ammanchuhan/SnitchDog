@@ -1,6 +1,6 @@
-# Accountable
+# SnitchDog
 
-Most habit apps punish you with a notification you can swipe away. Accountable puts a person on
+Most habit apps punish you with a notification you can swipe away. SnitchDog puts a person on
 the other end of the promise: you name one thing you'll do every day and one person who finds out
 when you don't.
 

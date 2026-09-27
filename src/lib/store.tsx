@@ -12,7 +12,7 @@ import { loadToken } from './session';
 import { deletePhoto } from './photos';
 import { Plan, Session, SessionStatus, toDate, WeighIn } from './types';
 
-const KEY = 'accountable.plan.v2';
+const KEY = 'snitchdog.plan.v2';
 
 type Ctx = {
   ready: boolean;
