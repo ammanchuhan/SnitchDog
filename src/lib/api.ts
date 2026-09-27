@@ -73,8 +73,8 @@ export const forgetMemory = (planId: string, id: string) =>
 
 /** Deep link a witness taps to attach their messaging account to this commitment. */
 export const witnessInviteUrl = (token: string) =>
-  BOT ? `${BOT}?start=w_${token}` : `https://snitchdog.app/w/${token}`;
+  BOT ? `${BOT}?start=w_${token}` : `https://snitchdog.com/w/${token}`;
 
 /** Deep link the owner taps to receive their own check-ins. */
 export const ownerLinkUrl = (planId: string) =>
-  BOT ? `${BOT}?start=o_${planId}` : `https://snitchdog.app/link/${planId}`;
+  BOT ? `${BOT}?start=o_${planId}` : `https://snitchdog.com/link/${planId}`;
