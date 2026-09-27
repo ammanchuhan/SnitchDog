@@ -1,4 +1,4 @@
-/** Thin client for the Accountable server.
+/** Thin client for the SnitchDog server.
  *
  * The app works without it — everything is stored on device first — but the server is what
  * actually messages you and your witness, because escalation has to happen while the app is
@@ -30,7 +30,7 @@ async function call<T>(path: string, init?: RequestInit): Promise<T | null> {
     return (await res.json()) as T;
   } catch (err) {
     // Never block the person from checking in because the network is down.
-    console.warn('[accountable] api', path, err);
+    console.warn('[snitchdog] api', path, err);
     return null;
   }
 }
@@ -73,8 +73,8 @@ export const forgetMemory = (planId: string, id: string) =>
 
 /** Deep link a witness taps to attach their messaging account to this commitment. */
 export const witnessInviteUrl = (token: string) =>
-  BOT ? `${BOT}?start=w_${token}` : `https://accountable.app/w/${token}`;
+  BOT ? `${BOT}?start=w_${token}` : `https://snitchdog.app/w/${token}`;
 
 /** Deep link the owner taps to receive their own check-ins. */
 export const ownerLinkUrl = (planId: string) =>
-  BOT ? `${BOT}?start=o_${planId}` : `https://accountable.app/link/${planId}`;
+  BOT ? `${BOT}?start=o_${planId}` : `https://snitchdog.app/link/${planId}`;

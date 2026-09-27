@@ -127,7 +127,7 @@ const APPLE_JWKS = createRemoteJWKSet(new URL('https://appleid.apple.com/auth/ke
  *  `sub` is the only field we can rely on: Apple sends email and name on the *first* sign-in
  *  only, so the client forwards those separately and we treat them as a bonus, never a key. */
 export async function verifyAppleToken(identityToken: string): Promise<{ sub: string; email: string | null }> {
-  const audience = process.env.APPLE_BUNDLE_ID || 'com.ammanchuhan.accountable';
+  const audience = process.env.APPLE_BUNDLE_ID || 'com.ammanchuhan.snitchdog';
   const { payload } = await jwtVerify(identityToken, APPLE_JWKS, {
     issuer: 'https://appleid.apple.com',
     audience,

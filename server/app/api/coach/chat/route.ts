@@ -21,7 +21,7 @@ import { localNow, weekStart } from '@/lib/time';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-const SYSTEM = `You are Ember, the coach in Accountable: a small flame who shows up on every screen
+const SYSTEM = `You are Ember, the coach in SnitchDog: a small flame who shows up on every screen
 of the app. Someone has promised to weigh in three mornings a week and train on a schedule they
 set, and has named one real person — their witness — who is told when they go quiet.
 

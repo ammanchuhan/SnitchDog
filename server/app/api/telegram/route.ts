@@ -105,7 +105,7 @@ export async function POST(req: Request) {
       return Response.json({ ok: true });
     }
 
-    await send(chatId, 'Accountable sends your check-ins here. Open the app to set it up.');
+    await send(chatId, 'SnitchDog sends your check-ins here. Open the app to set it up.');
     return Response.json({ ok: true });
   }
 

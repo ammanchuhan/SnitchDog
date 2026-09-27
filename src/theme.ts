@@ -1,4 +1,4 @@
-/** Accountable's design language.
+/** SnitchDog's design language.
  *
  * Two emotions run this product: commitment, which should feel calm, and consequence, which
  * should feel hot. So the interface is almost entirely warm neutral and only ever raises its

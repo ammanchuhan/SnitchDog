@@ -1,4 +1,4 @@
-# Accountable — technical specification
+# SnitchDog — technical specification
 
 A living document. It records what is built, what is deliberately not built, and the reasoning
 behind both. Every entry carries a status so nobody has to guess whether a line describes the
