@@ -1,4 +1,4 @@
-import { neon, NeonQueryFunction } from '@neondatabase/serverless';
+import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
 
 /** Built on first use, not at import time: the build runs without a DATABASE_URL and a
  *  connection made at module load would fail it. */

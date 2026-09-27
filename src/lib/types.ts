@@ -91,7 +91,13 @@ export type Pace = 'steady' | 'moderate' | 'fast';
 /** About the person, asked once at sign-up and used to build the plan and set an honest target
  *  range. **Stays on this phone.** Nothing the server does needs a height or an age, so they are
  *  stripped before any sync (see api.ts). All optional: plans made before sign-up asked lack it. */
+/** Asked so the generated workout plan and Ember's phrasing fit the person.
+ *  Deliberately NOT used to move the healthy-weight floor: the standard BMI range is not
+ *  sex-specific, and inventing one would be inventing medicine. */
+export type Gender = 'man' | 'woman' | 'unspecified';
+
 export type Profile = {
+  gender?: Gender;
   heightCm?: number;
   /** How they entered it, so it's shown back the same way. */
   heightUnit?: HeightUnit;
@@ -136,6 +142,23 @@ export const shiftDate = (date: string, days: number) => {
 
 export const weekdayOf = (date: string): Weekday =>
   new Date(`${date}T12:00:00`).getDay() as Weekday;
+
+/** The calendar day an instant fell on, in the plan's timezone rather than this device's.
+ *
+ * §4: every date is the owner's local day, computed from the stored IANA zone. `toDate` reads
+ * the device instead, which is right for "today" but wrong for a fixed instant — someone who
+ * sets a plan up in New York and opens the app in Tokyo would otherwise compute a different
+ * creation day from the server, and be shown a weekly floor the server does not agree with. */
+export const dateIn = (iso: string, timeZone: string): string => {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date(iso));
+  const get = (type: string) => parts.find((x) => x.type === type)?.value ?? '';
+  return `${get('year')}-${get('month')}-${get('day')}`;
+};
 
 /** Weeks run Monday to Sunday; the id is the Monday. */
 export function weekStart(date: string): string {
@@ -191,7 +214,8 @@ export function progress(p: Plan, date = toDate()): number {
  * Starting on a Saturday should not mean failing your first week before you have done anything,
  * so the week a plan is created in is pro-rated to the mornings that were actually available. */
 export function requiredInWeek(p: Plan, date: string): number {
-  const created = toDate(new Date(p.createdAt));
+  // The plan's zone, not the phone's — the server grades this week with the same basis.
+  const created = dateIn(p.createdAt, p.timezone);
   if (weekStart(date) !== weekStart(created)) return p.goal.perWeek;
   return Math.min(p.goal.perWeek, daysLeftInWeek(created));
 }

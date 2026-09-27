@@ -10,7 +10,7 @@
  * The gaps are configurable so the loop can be demonstrated in minutes instead of a day.
  */
 import { write } from './coach';
-import { PlanRow, SessionRow, getSessions, getWeighIns, sql } from './db';
+import { type PlanRow, type SessionRow, getSessions, getWeighIns, sql } from './db';
 import { send } from './telegram';
 import { createdDate, daysLeftInWeek, localNow, minutesSince, shiftDate, weekStart, weekdayOf } from './time';
 
