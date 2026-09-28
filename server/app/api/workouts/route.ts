@@ -1,5 +1,5 @@
 import { sql } from '@/lib/db';
-import { bad, callerWithPlan, isDate, planResponse, readJson } from '@/lib/http';
+import { bad, authed, isDate, planResponse, readJson } from '@/lib/http';
 import { countsFrom, MIN_WORKOUT_MINUTES, workoutsDue } from '@/lib/rules';
 import { getWitnesses } from '@/lib/db';
 import { tellOwner } from '@/lib/notify';
@@ -12,9 +12,7 @@ export const dynamic = 'force-dynamic';
  *
  *  Verifies the first unverified workout scheduled that day. A visit on a day with nothing
  *  scheduled is a bonus and isn't recorded. */
-export async function POST(req: Request) {
-  const c = await callerWithPlan(req);
-  if (c instanceof Response) return c;
+export const POST = authed(async (req, c) => {
   const p = c.plan;
   const b = await readJson(req);
 
@@ -45,4 +43,4 @@ export async function POST(req: Request) {
     });
   }
   return planResponse(p);
-}
+});

@@ -1,10 +1,12 @@
 import { EmailTakenError, issueToken, linkOrCreate, verifyGoogleToken } from '@/lib/auth';
+import { open } from '@/lib/http';
+import { LIMITS } from '@/lib/ratelimit';
 
 export const dynamic = 'force-dynamic';
 
 /** Sign in with Google. The client sends the ID token; we verify it against Google's published
  *  keys and against our own client ids, so a token minted for some other app is refused. */
-export async function POST(req: Request) {
+export const POST = open(async (req) => {
   const { idToken } = await req.json().catch(() => ({}));
   if (typeof idToken !== 'string' || !idToken) {
     return Response.json({ error: 'Missing ID token.' }, { status: 400 });
@@ -32,4 +34,4 @@ export async function POST(req: Request) {
     throw err;
   }
   return Response.json({ token: await issueToken(account.id), accountId: account.id });
-}
+}, LIMITS.provider);

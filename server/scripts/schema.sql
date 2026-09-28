@@ -233,3 +233,90 @@ create table if not exists witness_sends (
   sent    int  not null default 0,
   primary key (plan_id, day)
 );
+
+-- ── Row-level security (2026-09-28) ─────────────────────────────────────────────────────────
+-- The app connects as snitchdog_app (see scripts/create-app-role.mjs): it can read and write
+-- rows but not change the schema, and it can't bypass these policies. Every query runs in a
+-- context the server sets on the same transaction (lib/db.ts):
+--   app.account_id  the signed-in account: it sees only its own rows
+--   app.system      'on' for the ladder, the Telegram bot and sign-in lookups
+-- With neither set, a query sees nothing, so a missing context fails closed. The owner role
+-- (used only for migrations) bypasses all of this.
+
+create or replace function app_account() returns text language sql stable as $$ select nullif(current_setting('app.account_id', true), '') $$;
+create or replace function app_system() returns boolean language sql stable as $$ select coalesce(current_setting('app.system', true), '') = 'on' $$;
+create or replace function app_owns_plan(p text) returns boolean language sql stable as $$ select exists (select 1 from plans where id = p and account_id = app_account()) $$;
+
+-- Fixed-window rate limits (lib/ratelimit.ts).
+create table if not exists rate_limits (
+  key          text primary key,
+  window_start timestamptz not null default now(),
+  count        int         not null default 0
+);
+
+alter table accounts         enable row level security;
+alter table auth_tokens      enable row level security;
+alter table push_tokens      enable row level security;
+alter table password_resets  enable row level security;
+alter table plans            enable row level security;
+alter table witnesses        enable row level security;
+alter table weigh_ins        enable row level security;
+alter table sessions         enable row level security;
+alter table passes           enable row level security;
+alter table steps            enable row level security;
+alter table coach_messages   enable row level security;
+alter table coach_memories   enable row level security;
+alter table witness_sends    enable row level security;
+alter table ai_usage         enable row level security;
+alter table rate_limits      enable row level security;
+
+alter table accounts         force row level security;
+alter table auth_tokens      force row level security;
+alter table push_tokens      force row level security;
+alter table password_resets  force row level security;
+alter table plans            force row level security;
+alter table witnesses        force row level security;
+alter table weigh_ins        force row level security;
+alter table sessions         force row level security;
+alter table passes           force row level security;
+alter table steps            force row level security;
+alter table coach_messages   force row level security;
+alter table coach_memories   force row level security;
+alter table witness_sends    force row level security;
+alter table ai_usage         force row level security;
+alter table rate_limits      force row level security;
+
+drop policy if exists own on accounts;
+create policy own on accounts using (app_system() or id = app_account()) with check (app_system() or id = app_account());
+drop policy if exists own on auth_tokens;
+create policy own on auth_tokens using (app_system() or account_id = app_account()) with check (app_system() or account_id = app_account());
+drop policy if exists own on push_tokens;
+create policy own on push_tokens using (app_system() or account_id = app_account()) with check (app_system() or account_id = app_account());
+drop policy if exists own on password_resets;
+create policy own on password_resets using (app_system()) with check (app_system());
+drop policy if exists own on plans;
+create policy own on plans using (app_system() or account_id = app_account()) with check (app_system() or account_id = app_account());
+drop policy if exists own on witnesses;
+create policy own on witnesses using (app_system() or app_owns_plan(plan_id)) with check (app_system() or app_owns_plan(plan_id));
+drop policy if exists own on weigh_ins;
+create policy own on weigh_ins using (app_system() or app_owns_plan(plan_id)) with check (app_system() or app_owns_plan(plan_id));
+drop policy if exists own on sessions;
+create policy own on sessions using (app_system() or app_owns_plan(plan_id)) with check (app_system() or app_owns_plan(plan_id));
+drop policy if exists own on passes;
+create policy own on passes using (app_system() or app_owns_plan(plan_id)) with check (app_system() or app_owns_plan(plan_id));
+drop policy if exists own on steps;
+create policy own on steps using (app_system() or app_owns_plan(plan_id)) with check (app_system() or app_owns_plan(plan_id));
+drop policy if exists own on coach_messages;
+create policy own on coach_messages using (app_system() or app_owns_plan(plan_id)) with check (app_system() or app_owns_plan(plan_id));
+drop policy if exists own on coach_memories;
+create policy own on coach_memories using (app_system() or app_owns_plan(plan_id)) with check (app_system() or app_owns_plan(plan_id));
+drop policy if exists own on witness_sends;
+create policy own on witness_sends using (app_system() or app_owns_plan(plan_id)) with check (app_system() or app_owns_plan(plan_id));
+drop policy if exists own on ai_usage;
+create policy own on ai_usage using (app_system()) with check (app_system());
+drop policy if exists own on rate_limits;
+create policy own on rate_limits using (app_system()) with check (app_system());
+
+-- Nothing is granted to PUBLIC: other roles on this database (neon_auth, anything added
+-- later) see no tables at all.
+revoke all on all tables in schema public from public;

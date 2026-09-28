@@ -27,6 +27,9 @@ xcrun simctl privacy "$DEVICE" grant photos-add com.ammanchuhan.snitchdog
 # The simulated position: away from the gym the plan pins (1 Infinite Loop).
 xcrun simctl location "$DEVICE" set 37.7749,-122.4194
 
+# Test runs sign up and sign in far more than a person would; start with clear limits.
+(cd ../server && node --env-file=.env.local scripts/reset-rate-limits.mjs)
+
 for flow in $FLOWS; do
   if [ "$flow" = "01-signup.yaml" ]; then
     # The weigh-in flow picks this from the photo library (the simulator's camera takes nothing).

@@ -14,7 +14,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import { allow, clip, MODEL } from '@/lib/budget';
 import { SNITCH_VOICE, STYLE_NOTE } from '@/lib/coach';
 import { type PlanRow, getPasses, getSessions, getWeighIns, getWitnesses, isWatching, sql, witnessName } from '@/lib/db';
-import { callerWithPlan, readJson } from '@/lib/http';
+import { authed, readJson } from '@/lib/http';
+import { LIMITS } from '@/lib/ratelimit';
 import { getMemories, remember } from '@/lib/memory';
 import { countsFrom, passesLeft, PASSES_PER_MONTH, weekMath } from '@/lib/rules';
 import { localNow, shiftDate, weekStart, weekdayOf } from '@/lib/time';
@@ -109,9 +110,7 @@ async function grantPass(p: PlanRow, today: string, input: Record<string, unknow
 }
 
 /** Recent chat, oldest first, including Snitch's own nudges. */
-export async function GET(req: Request) {
-  const c = await callerWithPlan(req);
-  if (c instanceof Response) return c;
+export const GET = authed(async (req, c) => {
   const before = Number(new URL(req.url).searchParams.get('before')) || Number.MAX_SAFE_INTEGER;
   const rows = (await sql`
     select id::text, role, text, kind, data, created_at from coach_messages
@@ -119,11 +118,9 @@ export async function GET(req: Request) {
      order by id desc limit 50
   `) as unknown[];
   return Response.json({ messages: rows.reverse() });
-}
+});
 
-export async function POST(req: Request) {
-  const c = await callerWithPlan(req);
-  if (c instanceof Response) return c;
+export const POST = authed(async (req, c) => {
   const plan = c.plan;
   const message = clip((await readJson(req)).message);
   if (!message.trim()) return new Response('empty', { status: 400 });
@@ -205,4 +202,4 @@ ${memories.map((m) => `- ${m.fact}`).join('\n') || '- nothing yet'}`;
   const text = block && 'text' in block ? block.text.trim() : 'Say that again?';
   await remember(plan.id, `${plan.owner_name}: ${message}\nSnitch: ${text}`, memories);
   return reply(text, changed);
-}
+}, { limit: LIMITS.chat });

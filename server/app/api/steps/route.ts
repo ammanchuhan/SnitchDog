@@ -1,14 +1,12 @@
 import { sql } from '@/lib/db';
-import { bad, callerWithPlan, isDate, readJson } from '@/lib/http';
+import { bad, authed, isDate, readJson } from '@/lib/http';
 import { localNow, shiftDate } from '@/lib/time';
 
 export const dynamic = 'force-dynamic';
 
 /** Daily step totals from Apple Health, one number a day. Tracked only: missing the goal never
  *  reaches a witness (Q28). */
-export async function POST(req: Request) {
-  const c = await callerWithPlan(req);
-  if (c instanceof Response) return c;
+export const POST = authed(async (req, c) => {
   const p = c.plan;
   const b = await readJson(req);
   const days = Array.isArray(b.days) ? b.days.slice(0, 14) : [];
@@ -25,4 +23,4 @@ export async function POST(req: Request) {
   }
   if (!days.length) return bad('No steps sent.');
   return Response.json({ ok: true });
-}
+});

@@ -2,10 +2,13 @@
  *  the occasional app-authored message, and can always leave with /stop. The owner hears from
  *  Snitch in the app.
  */
+import { sameSecret } from '@/lib/auth';
 import { write } from '@/lib/coach';
 import { type PlanRow, type WitnessRow, getPlan, getWitnesses, isWatching, sql, witnessName } from '@/lib/db';
 import { tellOwner } from '@/lib/notify';
 import { send } from '@/lib/telegram';
+import { open } from '@/lib/http';
+import { hit, LIMITS } from '@/lib/ratelimit';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,16 +20,18 @@ type Update = {
   };
 };
 
-export async function POST(req: Request) {
-  const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
-  if (secret && req.headers.get('x-telegram-bot-api-secret-token') !== secret) {
+export const POST = open(async (req) => {
+  // Only Telegram knows the secret the webhook was registered with. Required, never optional.
+  if (!sameSecret(req.headers.get('x-telegram-bot-api-secret-token'), process.env.TELEGRAM_WEBHOOK_SECRET)) {
     return new Response('nope', { status: 401 });
   }
 
   const msg = ((await req.json()) as Update).message;
   if (!msg?.text) return Response.json({ ok: true });
   const chatId = String(msg.chat.id);
-  const text = msg.text.trim();
+  const text = msg.text.trim().slice(0, 200);
+  // Per chat: a stuck client or someone spamming the bot can't run up work for everyone.
+  if (await hit(LIMITS.telegram, chatId)) return Response.json({ ok: true });
 
   if (text.startsWith('/start')) {
     const payload = text.split(' ')[1] ?? '';
@@ -92,4 +97,4 @@ export async function POST(req: Request) {
 
   await send(chatId, 'I only send the occasional update here. Send /stop to stop being a witness.');
   return Response.json({ ok: true });
-}
+});

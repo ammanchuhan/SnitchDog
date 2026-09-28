@@ -1,10 +1,12 @@
 import { EmailTakenError, issueToken, linkOrCreate, verifyAppleToken } from '@/lib/auth';
+import { open } from '@/lib/http';
+import { LIMITS } from '@/lib/ratelimit';
 
 export const dynamic = 'force-dynamic';
 
 /** Sign in with Apple. The client sends the identity token; we verify it against Apple's keys
  *  rather than trusting anything the client claims about who it is. */
-export async function POST(req: Request) {
+export const POST = open(async (req) => {
   const { identityToken, email: clientEmail } = await req.json().catch(() => ({}));
   if (typeof identityToken !== 'string' || !identityToken) {
     return Response.json({ error: 'Missing identity token.' }, { status: 400 });
@@ -36,4 +38,4 @@ export async function POST(req: Request) {
     throw err;
   }
   return Response.json({ token: await issueToken(account.id), accountId: account.id });
-}
+}, LIMITS.provider);

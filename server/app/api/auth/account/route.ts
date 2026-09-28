@@ -1,5 +1,5 @@
-import { accountFor, unauthorized } from '@/lib/auth';
-import { planForAccount, getWeighIns, sql } from '@/lib/db';
+import { getWeighIns, sql } from '@/lib/db';
+import { signedIn } from '@/lib/http';
 import { tellWitnesses } from '@/lib/notify';
 import { reachedTarget } from '@/lib/rules';
 import { localNow } from '@/lib/time';
@@ -12,11 +12,7 @@ export const dynamic = 'force-dynamic';
  *  up, or, if they reached their goal, that they made it. Then one delete does the rest: plans,
  *  witnesses, weigh-ins, workouts, chat, memories, push tokens and sessions all cascade from the
  *  account, which also signs out every device. */
-export async function DELETE(req: Request) {
-  const account = await accountFor(req);
-  if (!account) return unauthorized();
-
-  const plan = await planForAccount(account.id);
+export const DELETE = signedIn(async (_req, { account, plan }) => {
   if (plan) {
     try {
       const today = localNow(plan.timezone).date;
@@ -30,4 +26,4 @@ export async function DELETE(req: Request) {
 
   await sql`delete from accounts where id = ${account.id}`;
   return Response.json({ ok: true });
-}
+});
