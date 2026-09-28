@@ -47,6 +47,7 @@ export default function Auth() {
       // Index decides where to land, asking the server for this account's plan first.
       router.replace('/');
     } catch (err) {
+      if (!(err instanceof AuthError)) console.warn('[auth]', err);
       setError(err instanceof AuthError ? err.message : 'Something went wrong. Try again.');
     } finally {
       setBusy(false);
@@ -102,6 +103,7 @@ export default function Auth() {
           onChangeText={setPassword}
           placeholder={creating ? `At least ${MIN_PASSWORD} characters` : ''}
           secureTextEntry
+          testID="password"
           autoCapitalize="none"
           autoCorrect={false}
           // 'newPassword' lets the keychain offer to generate and save one.

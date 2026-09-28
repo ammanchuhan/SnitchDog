@@ -12,6 +12,7 @@ import { Text } from '../src/components/Text';
 import { WitnessRole } from '../src/components/WitnessRole';
 import { ApiError } from '../src/lib/api';
 import { checkTarget, checkWeight, floorLine, heightOf, suggestTarget, targetReaction } from '../src/lib/limits';
+import { loadToken, signOut } from '../src/lib/session';
 import { usePlan } from '../src/lib/store';
 import type { Gender, HeightUnit, Unit } from '../src/lib/types';
 import { WEIGH_INS_PER_WEEK } from '../src/lib/types';
@@ -53,6 +54,11 @@ export default function SignUp() {
   const [keyboard, setKeyboard] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Sign-up makes the account's plan, so it needs an account (a deep link can land here without).
+  useEffect(() => {
+    loadToken().then((token) => !token && router.replace('/auth'));
+  }, [router]);
 
   useEffect(() => {
     const show = Keyboard.addListener('keyboardWillShow', () => setKeyboard(true));
@@ -301,6 +307,20 @@ export default function SignUp() {
           )}
           {controls()}
           {keyboard && <View style={{ flex: 1 }} />}
+          {current === 'hello' && (
+            <Pressable
+              onPress={async () => {
+                await signOut();
+                router.replace('/auth');
+              }}
+              hitSlop={8}
+              style={{ alignSelf: 'center' }}
+            >
+              <Text variant="small" tone="dim">
+                Use a different account
+              </Text>
+            </Pressable>
+          )}
         </View>
 
         <View style={{ flexDirection: 'row', gap: space(3), paddingHorizontal: space(6), paddingVertical: space(3) }}>

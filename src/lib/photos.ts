@@ -3,6 +3,7 @@
  *
  * Camera only, never the photo library, so an old picture can't stand in for this morning.
  */
+import * as Device from 'expo-device';
 import { File } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -12,6 +13,14 @@ export async function takePhoto(camera: 'back' | 'front' = 'back'): Promise<Capt
   const permission = await ImagePicker.requestCameraPermissionsAsync();
   if (!permission.granted) return { ok: false, reason: 'denied' };
 
+  // The simulator's camera shows a preview but never takes a picture. In development only, the
+  // photo library stands in so the flow can be exercised; a real phone never offers it.
+  if (__DEV__ && !Device.isDevice) {
+    const picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7 });
+    if (picked.canceled || !picked.assets[0]) return { ok: false, reason: 'cancelled' };
+    return { ok: true, uri: picked.assets[0].uri };
+  }
+
   let result: ImagePicker.ImagePickerResult;
   try {
     result = await ImagePicker.launchCameraAsync({
@@ -20,10 +29,7 @@ export async function takePhoto(camera: 'back' | 'front' = 'back'): Promise<Capt
       quality: 0.7,
     });
   } catch {
-    // The iOS simulator has no camera. In development only, the library stands in so the flow
-    // can be exercised; a real build never offers it.
-    if (!__DEV__) return { ok: false, reason: 'no-camera' };
-    result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7 });
+    return { ok: false, reason: 'no-camera' };
   }
   if (result.canceled || !result.assets[0]) return { ok: false, reason: 'cancelled' };
   return { ok: true, uri: result.assets[0].uri };
