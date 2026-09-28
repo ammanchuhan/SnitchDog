@@ -1,20 +1,14 @@
-/** The photo behind each weigh-in.
+/** Photos: the scale photo, which lives only as long as it takes to read it (LOG-3), and the
+ *  weekly mirror photo, which lives only on this phone (MIR-2).
  *
- * Camera only — never the photo library — so an old picture can't stand in for this morning.
- * Photos are kept in the app's own documents folder and never leave the phone: the witness is
- * told whether you weighed in, not what the scale said, and a photo of the scale says exactly
- * that. What's stored on the entry is the file name; the full path changes between installs.
+ * Camera only, never the photo library, so an old picture can't stand in for this morning.
  */
-import { Directory, File, Paths } from 'expo-file-system';
+import { File } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 
-const folder = () => new Directory(Paths.document, 'weigh-ins');
+export type Capture = { ok: true; uri: string } | { ok: false; reason: 'denied' | 'cancelled' | 'no-camera' };
 
-export const photoUri = (name: string) => new File(folder(), name).uri;
-
-export type Capture = { ok: true; name: string } | { ok: false; reason: 'denied' | 'cancelled' | 'no-camera' };
-
-export async function takeScalePhoto(date: string): Promise<Capture> {
+export async function takePhoto(camera: 'back' | 'front' = 'back'): Promise<Capture> {
   const permission = await ImagePicker.requestCameraPermissionsAsync();
   if (!permission.granted) return { ok: false, reason: 'denied' };
 
@@ -22,31 +16,26 @@ export async function takeScalePhoto(date: string): Promise<Capture> {
   try {
     result = await ImagePicker.launchCameraAsync({
       mediaTypes: ['images'],
-      cameraType: ImagePicker.CameraType.back,
-      quality: 0.5, // enough to read a display; a year of mornings shouldn't fill the phone
+      cameraType: camera === 'front' ? ImagePicker.CameraType.front : ImagePicker.CameraType.back,
+      quality: 0.7,
     });
   } catch {
     // The iOS simulator has no camera. In development only, the library stands in so the flow
     // can be exercised; a real build never offers it.
     if (!__DEV__) return { ok: false, reason: 'no-camera' };
-    result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.5 });
+    result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7 });
   }
   if (result.canceled || !result.assets[0]) return { ok: false, reason: 'cancelled' };
-
-  const dir = folder();
-  dir.create({ idempotent: true, intermediates: true });
-  const name = `${date}-${Date.now()}.jpg`;
-  await new File(result.assets[0].uri).copy(new File(dir, name));
-  return { ok: true, name };
+  return { ok: true, uri: result.assets[0].uri };
 }
 
-/** A retaken photo replaces the old one; the old file shouldn't linger. */
-export function deletePhoto(name?: string) {
-  if (!name) return;
+/** Delete a photo file. Scale photos go the moment the number is read or the sheet closes. */
+export function discardPhoto(uri?: string | null) {
+  if (!uri) return;
   try {
-    const f = new File(folder(), name);
+    const f = new File(uri);
     if (f.exists) f.delete();
   } catch {
-    // Already gone. Nothing to do.
+    // Already gone.
   }
 }

@@ -1,25 +1,33 @@
 import { View } from 'react-native';
 
 import type { Plan } from '../lib/types';
-import { recentDays, toDate, WEEKDAY_LETTER, weekdayOf } from '../lib/types';
+import { thisWeekDays, WEEKDAY_LETTER, weekdayOf } from '../lib/types';
 import { space, useTheme } from '../theme';
 import { Text } from './Text';
 
-/** Seven days at a glance: the circle is the morning weigh-in, the pips under it are that day's
- *  sessions. Two streams, one row, no legend needed. */
+/** This week, Monday to Sunday (HOME-9): the circle is the morning weigh-in, the pips under it
+ *  are that day's workouts. Two streams, one row, no legend needed. */
 export function DayStrip({ plan }: { plan: Plan }) {
   const t = useTheme();
-  const days = recentDays(plan, 7);
-  const today = toDate();
+  const days = thisWeekDays(plan);
+  const today = plan.today;
 
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-      {days.map(({ date, weighIn, sessions }) => {
+      {days.map(({ date, weighIn, workouts }) => {
         const isToday = date === today;
         const weighed = !!weighIn;
 
+        const done = workouts.filter((w) => w.workout?.status === 'done').length;
         return (
-          <View key={date} style={{ alignItems: 'center', gap: space(2) }}>
+          <View
+            key={date}
+            accessible
+            accessibilityLabel={`${WEEKDAY_LETTER[weekdayOf(date)]} ${Number(date.slice(-2))}: ${weighed ? 'weighed in' : 'no weigh-in'}${
+              workouts.length ? `, ${done} of ${workouts.length} workouts` : ''
+            }`}
+            style={{ alignItems: 'center', gap: space(2), opacity: date > today ? 0.5 : 1 }}
+          >
             <View
               style={{
                 width: 34,
@@ -37,9 +45,9 @@ export function DayStrip({ plan }: { plan: Plan }) {
               </Text>
             </View>
 
-            {/* One pip per scheduled session that day. Nothing scheduled, nothing shown. */}
+            {/* One pip per scheduled workout that day. Nothing scheduled, nothing shown. */}
             <View style={{ flexDirection: 'row', gap: 3, height: 6 }}>
-              {sessions.map(({ slot, session }) => (
+              {workouts.map(({ slot, workout: session }) => (
                 <View
                   key={slot.id}
                   style={{
@@ -48,7 +56,7 @@ export function DayStrip({ plan }: { plan: Plan }) {
                     borderRadius: 3,
                     backgroundColor:
                       session?.status === 'done'
-                        ? t.text
+                        ? t.good
                         : session?.status === 'missed'
                           ? t.ember
                           : 'transparent',

@@ -2,9 +2,18 @@ import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import type { DayState, Plan } from '../lib/types';
-import { dayState, monthGrid, rollingAverage, shiftDate, toDate, WEEKDAY_LETTER } from '../lib/types';
+import { dayState, monthGrid, rollingAverage, shiftDate, WEEKDAY_LETTER } from '../lib/types';
 import { space, useTheme } from '../theme';
 import { Text } from './Text';
+
+const LABEL: Record<DayState, string> = {
+  clean: 'kept',
+  quiet: 'nothing owed',
+  slipped: 'slipped',
+  called: 'witnesses were told',
+  future: 'still to come',
+  before: 'before the plan counted',
+};
 
 const MONTH = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
@@ -15,7 +24,7 @@ const MONTH = ['January','February','March','April','May','June','July','August'
  * onboarding and take back on this screen. */
 export function MonthCalendar({ plan }: { plan: Plan }) {
   const t = useTheme();
-  const today = toDate();
+  const today = plan.today;
   const [month, setMonth] = useState(today.slice(0, 7));
 
   const skin: Record<DayState, { bg: string; border: string; fg: string }> = {
@@ -32,17 +41,19 @@ export function MonthCalendar({ plan }: { plan: Plan }) {
   const cells = monthGrid(`${month}-01`);
   const step = (by: number) => setMonth(shiftDate(`${month}-15`, by * 30).slice(0, 7));
 
-  // The month in three numbers: mornings logged, sessions kept, and where the average went
-  // between the day before it started and its last day (or today, for this month).
+  // The month in four numbers (ANA-3): mornings logged, workouts verified of those scheduled,
+  // average steps, and where the average went between the day before it started and its last
+  // day (or today, for this month).
   const inMonth = (d: string) => d.startsWith(month);
   const logged = plan.weighIns.filter((w) => inMonth(w.date)).length;
-  const answered = plan.sessions.filter((s) => inMonth(s.date));
+  const answered = plan.workouts.filter((s) => inMonth(s.date) && s.status !== 'excused');
   const kept = answered.filter((s) => s.status === 'done').length;
+  const stepDays = plan.steps.filter((s) => inMonth(s.date));
+  const avgSteps = stepDays.length ? Math.round(stepDays.reduce((n, s) => n + s.steps, 0) / stepDays.length) : undefined;
   const lastDay = [...cells].reverse().find((c): c is string => !!c)!;
   const from = rollingAverage(plan, shiftDate(`${month}-01`, -1));
   const to = rollingAverage(plan, lastDay < today ? lastDay : today);
   const moved = from !== undefined && to !== undefined ? to - from : undefined;
-  const toward = moved !== undefined && Math.sign(moved) === Math.sign(plan.goal.target - plan.goal.start);
 
   return (
     <View style={{ gap: space(4) }}>
@@ -73,7 +84,12 @@ export function MonthCalendar({ plan }: { plan: Plan }) {
           const s = skin[state];
           const isToday = date === today;
           return (
-            <View key={i} style={{ width: `${100 / 7}%`, aspectRatio: 1, padding: 3 }}>
+            <View
+              key={i}
+              accessible
+              accessibilityLabel={`${Number(date.slice(-2))}: ${LABEL[state]}`}
+              style={{ width: `${100 / 7}%`, aspectRatio: 1, padding: 3 }}
+            >
               <View
                 style={{
                   flex: 1,
@@ -96,19 +112,17 @@ export function MonthCalendar({ plan }: { plan: Plan }) {
 
       <View style={{ flexDirection: 'row', gap: space(3) }}>
         <Stat label="WEIGH-INS" value={`${logged}`} />
-        <Stat label="SESSIONS" value={answered.length ? `${kept}/${answered.length}` : '—'} />
-        <Stat
-          label="AVERAGE"
-          value={moved === undefined ? '—' : `${moved > 0 ? '+' : ''}${moved.toFixed(1)}`}
-          tone={moved !== undefined && Math.abs(moved) >= 0.05 ? (toward ? 'good' : 'ember') : undefined}
-        />
+        <Stat label="WORKOUTS" value={answered.length ? `${kept}/${answered.length}` : '—'} />
+        <Stat label="STEPS" value={avgSteps === undefined ? '—' : avgSteps.toLocaleString()} />
+        {/* Neutral either way (Q12): the app doesn't grade the number (P1). */}
+        <Stat label="AVERAGE" value={moved === undefined ? '—' : `${moved > 0 ? '+' : ''}${moved.toFixed(1)}`} />
       </View>
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space(4), paddingTop: space(2) }}>
         <Key color={t.good} label="Kept" />
         <Key color="transparent" label="Nothing owed" border={t.lineSoft} />
         <Key color={t.surfaceHigh} label="Slipped" border={t.textFaint} />
-        <Key color={t.ember} label={`${plan.witness.name} was called`} />
+        <Key color={t.ember} label="Witnesses were told" />
       </View>
     </View>
   );
