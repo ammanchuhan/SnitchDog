@@ -1,5 +1,11 @@
 # SnitchDog — technical specification
 
+> **Superseded (2026-09-28).** This describes the app before v1: one witness, local-first, the
+> owner on Telegram. The v1 requirements (witnesses 1–3, cloud-first, push, GPS workouts, OCR) are
+> in the requirements doc, and the code follows it. Kept for the reasoning behind the decisions
+> that still hold: the weekly floor, the coach never commenting on the number, the AI budget,
+> token hashing and the safety rules.
+
 A living document. It records what is built, what is deliberately not built, and the reasoning
 behind both. Every entry carries a status so nobody has to guess whether a line describes the
 system or an intention.
