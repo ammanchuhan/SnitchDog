@@ -96,7 +96,8 @@ export default function Home() {
   const allDone = !!weighIn && due.every((s) => workoutFor(plan, today, s.id)?.status === 'done');
   const workouts = workoutsThisWeek(plan);
   const accepted = watching(plan).length;
-  const named = plan.witnesses.length;
+  // Witnesses who stepped back aren't counted: they're not coming back without a new invite.
+  const named = plan.witnesses.filter((w) => w.status !== 'stepped_back').length;
   const paused = isPaused(plan, today);
   const stepsToday = stepsOn(plan, today);
 
@@ -128,7 +129,11 @@ export default function Home() {
         <View style={{ gap: space(2), marginBottom: space(6) }}>
           {accepted === 0 && (
             <Banner
-              text={`Nobody is watching yet: ${accepted} of ${named} ${named === 1 ? 'witness has' : 'witnesses have'} accepted`}
+              text={
+                named === 0
+                  ? 'Nobody is watching: invite a witness'
+                  : `Nobody is watching yet: ${accepted} of ${named} ${named === 1 ? 'witness has' : 'witnesses have'} accepted`
+              }
               action="Invite"
               onPress={() => router.push('/profile/witnesses')}
             />
@@ -208,6 +213,12 @@ export default function Home() {
                 <Text variant="small" tone="dim">
                   {weekLine(plan)}
                 </Text>
+                {/* LOG-6: a second weigh-in the same day replaces the first. */}
+                <Pressable onPress={() => router.push('/log')} hitSlop={8} accessibilityRole="button" style={{ alignSelf: 'flex-start', paddingTop: space(1) }}>
+                  <Text variant="small" tone="dim" style={{ textDecorationLine: 'underline' }}>
+                    Log again
+                  </Text>
+                </Pressable>
               </Card>
             ) : !paused ? (
               // Alarm until weighed in, unless the week is already met (Q10).

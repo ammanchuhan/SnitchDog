@@ -40,7 +40,9 @@ appId: com.ammanchuhan.snitchdog
 - extendedWaitUntil:
     visible: ".*Where do you work out.*"
     timeout: 5000
+- waitForAnimationToEnd
 - tapOn: "Search a gym or address"
+- waitForAnimationToEnd
 - inputText: "1 Infinite Loop, Cupertino"
 - pressKey: Enter
 - extendedWaitUntil:
