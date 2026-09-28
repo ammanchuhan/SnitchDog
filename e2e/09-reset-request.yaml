@@ -1,0 +1,55 @@
+# Forgot password (AUTH-7, AUTH-8): sign out and ask for a code. Entering the code and a new
+# password isn't automated: iOS's strong-password sheet on the new-password field is system UI
+# that ignores synthesized taps. That half is covered against the server (wrong code refused,
+# right code signs in and signs out every other device) and should be checked by hand.
+appId: com.ammanchuhan.snitchdog
+---
+- launchApp
+- extendedWaitUntil:
+    visible: ".*(Make your account|Welcome back|Profile).*"
+    timeout: 60000
+- extendedWaitUntil:
+    visible: "never-shown"
+    timeout: 6000
+    optional: true
+- runFlow:
+    when:
+      visible: "Profile"
+    commands:
+      - openLink: "snitchdog://profile/account"
+      - tapOn: "Sign out"
+      - tapOn:
+          text: "Sign out"
+          index: 1
+- extendedWaitUntil:
+    visible: ".*(Make your account|Welcome back).*"
+    timeout: 15000
+- runFlow:
+    when:
+      visible: "Make your account"
+    commands:
+      - tapOn: "I already have an account"
+- tapOn: "you@example.com"
+- inputText: ${EMAIL}
+- tapOn: "Forgot password?"
+- assertVisible: "Reset your password"
+- tapOn: "Send the code"
+- extendedWaitUntil:
+    visible: "Check your email"
+    timeout: 15000
+- assertVisible: ".*If there.s an account for .*, we.ve sent a code.*"
+- assertVisible: "000000"
+- tapOn: "Back"
+- tapOn:
+    id: "password"
+- inputText: ${PASSWORD}
+- tapOn: "Sign in"
+- extendedWaitUntil:
+    visible: "never-shown"
+    timeout: 4000
+    optional: true
+- tapOn:
+    point: "32%,62%"
+- extendedWaitUntil:
+    visible: "Profile"
+    timeout: 20000

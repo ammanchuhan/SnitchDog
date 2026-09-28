@@ -1,0 +1,11 @@
+# Leaving (P4, PROF-10): the alert says what witnesses will hear, then everything is erased.
+appId: com.ammanchuhan.snitchdog
+---
+- runFlow: _launch.yaml
+- openLink: "snitchdog://profile/account"
+- tapOn: "Delete my account"
+- assertVisible: ".*Every witness will be told: .Sam has quit the promise they asked you to witness\\.. .*"
+- tapOn: "Delete"
+- extendedWaitUntil:
+    visible: "Make your account"
+    timeout: 20000

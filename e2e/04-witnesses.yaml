@@ -1,0 +1,54 @@
+# Section 4 before anyone accepts: the list, what a witness will get, sharing the invite,
+# adding a third, and withdrawing an invite nobody accepted (which tells nobody).
+appId: com.ammanchuhan.snitchdog
+---
+- runFlow: _launch.yaml
+- tapOn: "Profile"
+- assertVisible: "Sam"
+- tapOn: "Witnesses.*"
+- assertVisible: "Alex, Waiting"
+- assertVisible: "Jordan, Waiting"
+- tapOn: "Alex.*"
+# WIT-3 / Q7: the exact messages, before the invite is sent
+- assertVisible: "WAITING"
+- assertVisible: ".*I.m Snitch, Sam.s coach. You.re one of their witnesses.*"
+- assertVisible: ".*Sam finished the week with 2 of 3 weigh-ins.*"
+- scrollUntilVisible:
+    element: "Share the invite"
+- assertVisible: ".*Sam has missed 2 workouts in a row.*"
+# WIT-4: the share sheet opens with the invite
+- tapOn: "Share the invite"
+- extendedWaitUntil:
+    visible: "Copy"
+    timeout: 10000
+- assertVisible: "Alex, I.m using an app called SnitchDog.*start=w_.*"
+- tapOn: "dismiss popup"
+- extendedWaitUntil:
+    notVisible: "Copy"
+    timeout: 5000
+- tapOn: "Back"
+
+# WIT-5: a third witness, named on the phone
+- tapOn: "+ Add a witness"
+- extendedWaitUntil:
+    visible: "The name stays on this phone until they accept."
+    timeout: 10000
+- tapOn: "First name"
+- inputText: "Riley"
+- tapOn: "Save name"
+- assertVisible: "Share the invite"
+- tapOn: "Back"
+- assertVisible: "Riley, Waiting"
+- assertNotVisible: "+ Add a witness"
+
+# Withdrawing an invite nobody accepted
+- tapOn: "Riley.*"
+- scrollUntilVisible:
+    element: "Remove this witness"
+- tapOn: "Remove this witness"
+- assertVisible: ".*They never accepted, so nobody is told.*"
+- tapOn: "Remove"
+- extendedWaitUntil:
+    visible: "+ Add a witness"
+    timeout: 10000
+- assertNotVisible: "Riley.*"
