@@ -1,4 +1,4 @@
-import { type PlanRow, type WitnessRow, getPasses, getSessions, getSteps, getWeighIns, getWitnesses, isWatching } from './db';
+import { type PlanRow, type WitnessRow, getPasses, getSessions, getSteps, getWeighIns, getWitnesses, isWatching, sql } from './db';
 import { countsFrom, passesLeft, weekMath } from './rules';
 import { localNow } from './time';
 
@@ -14,12 +14,13 @@ export function witnessStatus(w: WitnessRow): WitnessStatus {
 /** Everything the app shows, in one response. The server is the source of truth (P5); the app
  *  caches this and asks again after every change. */
 export async function serialisePlan(p: PlanRow) {
-  const [weighIns, sessions, witnesses, passes, steps] = await Promise.all([
+  const [weighIns, sessions, witnesses, passes, steps, account] = await Promise.all([
     getWeighIns(p.id),
     getSessions(p.id),
     getWitnesses(p.id),
     getPasses(p.id),
     getSteps(p.id),
+    sql`select email, password_hash is not null as has_password from accounts where id = ${p.account_id}`,
   ]);
   const { date } = localNow(p.timezone);
   const start = countsFrom(p, witnesses);
@@ -27,6 +28,8 @@ export async function serialisePlan(p: PlanRow) {
   return {
     id: p.id,
     ownerName: p.owner_name,
+    email: (account[0]?.email as string | null) ?? undefined,
+    hasPassword: !!account[0]?.has_password,
     timezone: p.timezone,
     createdAt: p.created_at,
     countsFrom: start,

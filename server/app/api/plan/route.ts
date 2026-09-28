@@ -55,6 +55,19 @@ export async function POST(req: Request) {
   return planResponse(plan);
 }
 
+const DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const hourLabel = (h: number) => `${h % 12 || 12} ${h < 12 ? 'am' : 'pm'}`;
+
+/** "4 workouts: Mon, Wed, Fri, Sat at Iron Works by 6 pm · 8,000 steps a day" (COACH-5). */
+function planSummary(routine: RoutineSlot[], gym: Gym | null, stepsGoal: number | null) {
+  const parts = routine.map((s) => {
+    const days = [...s.days].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map((d) => DAY[d]).join(', ');
+    return `${s.days.length} workout${s.days.length === 1 ? '' : 's'}: ${days}${gym ? ` at ${gym.name}` : ''} by ${hourLabel(s.hour)}`;
+  });
+  if (stepsGoal) parts.push(`${stepsGoal.toLocaleString('en-US')} steps a day`);
+  return parts.join(' · ');
+}
+
 const validSlot = (s: any): s is RoutineSlot =>
   s &&
   typeof s.id === 'string' &&
@@ -113,6 +126,11 @@ export async function PATCH(req: Request) {
          set routine = ${JSON.stringify(routine)}, gym = ${gym ? JSON.stringify(gym) : null},
              steps_goal = ${stepsGoal}, plan_confirmed_at = coalesce(plan_confirmed_at, now())
        where id = ${p.id}
+    `;
+    // The chat keeps a record of what was agreed (COACH-5); no push, they just confirmed it.
+    await sql`
+      insert into coach_messages (plan_id, role, text, kind)
+      values (${p.id}, 'coach', ${`Plan set. ${planSummary(routine, gym, stepsGoal)}`}, 'plan_confirmed')
     `;
   }
 
