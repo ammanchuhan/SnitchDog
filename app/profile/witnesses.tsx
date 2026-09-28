@@ -40,7 +40,7 @@ export default function Witnesses() {
   }
 
   return (
-    <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={{ padding: space(5), gap: space(6) }}>
+    <ScrollView automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled" style={{ backgroundColor: t.bg }} contentContainerStyle={{ padding: space(5), gap: space(6) }}>
       <ListGroup footer="Each witness is messaged on their own. Nobody is told who the others are.">
         {plan.witnesses.map((w, i) => (
           <ListRow

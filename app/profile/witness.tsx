@@ -58,7 +58,7 @@ export default function WitnessDetail() {
   }
 
   return (
-    <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={{ padding: space(5), gap: space(6) }} keyboardShouldPersistTaps="handled">
+    <ScrollView automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive" style={{ backgroundColor: t.bg }} contentContainerStyle={{ padding: space(5), gap: space(6) }} keyboardShouldPersistTaps="handled">
       <View style={{ gap: space(1) }}>
         <Text variant="micro" tone={w.status === 'watching' ? 'good' : 'faint'}>
           {STATUS_LABEL[w.status].toUpperCase()}

@@ -12,7 +12,7 @@ import { Text } from '../../src/components/Text';
 import { ApiError, patchPlan, pausePlan, resumePlan } from '../../src/lib/api';
 import { checkTarget, heightLabel, heightOf } from '../../src/lib/limits';
 import { usePlan } from '../../src/lib/store';
-import { isPaused, WEEKDAY_LABEL, WEIGH_INS_PER_WEEK } from '../../src/lib/types';
+import { friendlyDate, isPaused, WEEKDAY_LABEL, WEIGH_INS_PER_WEEK } from '../../src/lib/types';
 import { radius, space, useTheme } from '../../src/theme';
 
 const REASONS = ['Illness', 'Injury', 'Travel', 'Family'];
@@ -72,7 +72,7 @@ export default function YourPlan() {
           `Your witnesses will be told you’ve paused for ${PAUSE_DAYS[d]} days (${REASONS[r].toLowerCase()}). Nothing is due until it ends.`,
           [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'Pause', onPress: () => act(() => run(() => pausePlan(PAUSE_DAYS[d], REASONS[r]))) },
+            { text: 'Pause plan', onPress: () => act(() => run(() => pausePlan(PAUSE_DAYS[d], REASONS[r]))) },
           ],
         ),
       ),
@@ -80,7 +80,7 @@ export default function YourPlan() {
   }
 
   return (
-    <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={{ padding: space(5), gap: space(6) }} keyboardShouldPersistTaps="handled">
+    <ScrollView automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive" style={{ backgroundColor: t.bg }} contentContainerStyle={{ padding: space(5), gap: space(6) }} keyboardShouldPersistTaps="handled">
       <ListGroup title="Workouts">
         {slot ? (
           <>
@@ -99,11 +99,14 @@ export default function YourPlan() {
           <Text variant="micro" tone="faint" style={{ paddingHorizontal: space(4) }}>
             {plan.gym.name.toUpperCase()}
           </Text>
-          <GymMap
-            style={{ height: 160, borderRadius: radius.md, overflow: 'hidden' }}
-            pin={{ latitude: plan.gym.lat, longitude: plan.gym.lng }}
-            radius={plan.gym.radius}
-          />
+          {/* A picture of the gym, not a map to explore: touches pass through so the page scrolls. */}
+          <View pointerEvents="none">
+            <GymMap
+              style={{ height: 160, borderRadius: radius.md, overflow: 'hidden' }}
+              pin={{ latitude: plan.gym.lat, longitude: plan.gym.lng }}
+              radius={plan.gym.radius}
+            />
+          </View>
         </View>
       )}
 
@@ -118,7 +121,7 @@ export default function YourPlan() {
       ) : (
         <View style={{ gap: space(4) }}>
           <HeightField cm={heightCm} unit={heightUnit} onChange={(cm, u) => { setHeightCm(cm); setHeightUnit(u); }} />
-          <Field label="Target" numeric keyboardType="decimal-pad" suffix={goal.unit} value={target} onChangeText={setTarget} />
+          <Field label="Target" numeric keyboardType="decimal-pad" suffix={goal.unit} value={target} onChangeText={setTarget} testID="target" />
           {problem && (
             <Text variant="small" tone="ember">
               {problem}
@@ -141,7 +144,7 @@ export default function YourPlan() {
 
       <ListGroup title="Pause" footer="For illness, injury or travel: up to 14 days. Your witnesses are told, with the reason.">
         {paused && plan.pause ? (
-          <ListRow label={`Paused until ${plan.pause.until}`} detail={plan.pause.reason} />
+          <ListRow label={`Paused until ${friendlyDate(plan.pause.until)}`} detail={plan.pause.reason} />
         ) : (
           <ListRow label="Pause my plan" onPress={pause} />
         )}

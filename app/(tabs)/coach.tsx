@@ -1,6 +1,6 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Bubble } from '../../src/components/Bubble';
@@ -27,6 +27,19 @@ export default function Coach() {
   const [draft, setDraft] = useState('');
   const [thinking, setThinking] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
+  const [keyboard, setKeyboard] = useState(false);
+
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardWillShow', () => setKeyboard(true));
+    const hide = Keyboard.addListener('keyboardWillHide', () => setKeyboard(false));
+    // The list shrinks when the keyboard opens; keep the newest message in view.
+    const shown = Keyboard.addListener('keyboardDidShow', () => scroller.current?.scrollToEnd({ animated: true }));
+    return () => {
+      show.remove();
+      hide.remove();
+      shown.remove();
+    };
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -89,6 +102,7 @@ export default function Coach() {
           contentContainerStyle={{ padding: space(5), gap: space(4), paddingBottom: building ? TAB_BAR_CLEARANCE : space(5) }}
           onContentSizeChange={() => scroller.current?.scrollToEnd({ animated: true })}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         >
           {!loaded && <ActivityIndicator color={t.textFaint} />}
           {loaded && messages.length === 0 && !building && (
@@ -122,8 +136,9 @@ export default function Coach() {
               gap: space(3),
               paddingHorizontal: space(5),
               paddingTop: space(3),
-              // The composer is pinned to the bottom, so it is what has to clear the floating pill.
-              paddingBottom: TAB_BAR_CLEARANCE,
+              // The composer is pinned to the bottom, so it is what has to clear the floating pill;
+              // with the keyboard up the pill is hidden behind it.
+              paddingBottom: keyboard ? space(3) : TAB_BAR_CLEARANCE,
               borderTopWidth: 1,
               borderTopColor: t.lineSoft,
             }}
@@ -156,6 +171,7 @@ export default function Coach() {
               disabled={!draft.trim() || thinking}
               accessibilityRole="button"
               accessibilityLabel="Send"
+              testID="send"
               style={{
                 width: 44,
                 height: 44,

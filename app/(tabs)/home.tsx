@@ -15,6 +15,7 @@ import { checkTarget, heightOf } from '../../src/lib/limits';
 import { usePlan } from '../../src/lib/store';
 import {
   currentAverage,
+  friendlyDate,
   isPaused,
   type Plan,
   previousAverage,
@@ -127,7 +128,7 @@ export default function Home() {
           {paused && plan.pause && (
             <Card style={{ padding: space(4) }}>
               <Text variant="small" tone="dim">
-                Paused until {plan.pause.until} ({plan.pause.reason.toLowerCase()}). Nothing is due.
+                Paused until {friendlyDate(plan.pause.until)} ({plan.pause.reason.toLowerCase()}). Nothing is due.
               </Text>
             </Card>
           )}

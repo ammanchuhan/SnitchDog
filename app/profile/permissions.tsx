@@ -28,7 +28,7 @@ export default function Permissions() {
   );
 
   return (
-    <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={{ padding: space(5), gap: space(6) }}>
+    <ScrollView automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled" style={{ backgroundColor: t.bg }} contentContainerStyle={{ padding: space(5), gap: space(6) }}>
       <ListGroup footer="Needs “Always”, so a workout counts without opening the app. Only “arrived” and “left” are worked out, on this phone.">
         <ListRow label="Location" value={LABEL[location]} tone={location === 'on' ? undefined : 'ember'} onPress={() => Linking.openSettings()} />
       </ListGroup>

@@ -78,6 +78,7 @@ export default function Reset() {
               keyboardType="number-pad"
               textContentType="oneTimeCode"
               placeholder="000000"
+              testID="code"
               autoFocus
             />
             <Field
@@ -88,6 +89,7 @@ export default function Reset() {
               secureTextEntry
               autoCapitalize="none"
               textContentType="newPassword"
+              testID="new-password"
             />
             {short ? (
               <Text variant="small" tone="dim" style={{ marginTop: -space(2) }}>
