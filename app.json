@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "scheme": "snitchdog",
     "userInterfaceStyle": "automatic",
-    "backgroundColor": "#FBFAF8",
+    "backgroundColor": "#FAF7F2",
     "icon": "./assets/icon.png",
     "ios": {
       "supportsTablet": false,
@@ -24,7 +24,7 @@
       "package": "com.ammanchuhan.snitchdog",
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundColor": "#0E1013"
+        "backgroundColor": "#FAF7F2"
       }
     },
     "plugins": [
@@ -34,9 +34,9 @@
         "expo-splash-screen",
         {
           "image": "./assets/splash-icon.png",
-          "imageWidth": 180,
+          "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#FBFAF8",
+          "backgroundColor": "#FAF7F2",
           "dark": {
             "backgroundColor": "#121211"
           }
