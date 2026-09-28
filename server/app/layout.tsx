@@ -1,4 +1,8 @@
-export const metadata = { title: 'SnitchDog', description: 'Somebody finds out.' };
+export const metadata = {
+  title: 'SnitchDog',
+  description: 'An AI can’t hold you accountable. The people you respect can.',
+  icons: { icon: '/favicon.png' },
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
