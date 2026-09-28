@@ -19,7 +19,10 @@ export default function Index() {
     (async () => {
       if (!(await loadToken())) return setWhere('/auth');
       if (plan) return setWhere('/home');
-      setWhere((await refresh()) ? '/home' : '/signup');
+      const remote = await refresh();
+      // refresh() signs the phone out if the server no longer knows this token.
+      if (!(await loadToken())) return setWhere('/auth');
+      setWhere(remote ? '/home' : '/signup');
     })();
     // Decided once per visit; the plan arriving later doesn't re-route.
     // eslint-disable-next-line react-hooks/exhaustive-deps

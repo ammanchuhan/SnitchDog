@@ -93,8 +93,8 @@ export default function Log() {
   return (
     <Screen scroll={false} edges={['top', 'bottom']}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingTop: space(4) }}>
-          <Pressable onPress={dismiss} hitSlop={12}>
+        <View style={{ flexDirection: 'row', justifyContent: 'flex-start', paddingTop: space(4) }}>
+          <Pressable onPress={dismiss} hitSlop={12} accessibilityRole="button">
             <Text variant="label" tone="faint">
               {phase.kind === 'saved' ? 'Done' : 'Close'}
             </Text>

@@ -4,7 +4,7 @@
  * changes the plan answers with the whole plan. Errors are thrown as ApiError with the server's
  * own wording, which is written for a person to read.
  */
-import { currentToken } from './session';
+import { loadToken } from './session';
 import type { Gym, NewPlan, Plan, RoutineSlot, Style } from './types';
 
 const BASE = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '') ?? '';
@@ -17,13 +17,17 @@ export class ApiError extends Error {
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
   if (!BASE) throw new ApiError('No server is configured for this build.', 0);
+  // Awaited, not read from memory: after a JS reload the in-memory copy is empty until the
+  // keychain is read again, and a call made in that window would go out signed out.
+  const token = await loadToken();
+  if (!token) throw new ApiError('You’re signed out. Sign in again.', 401);
   let res: Response;
   try {
     res = await fetch(`${BASE}${path}`, {
       ...init,
       headers: {
         'content-type': 'application/json',
-        authorization: `Bearer ${currentToken() ?? ''}`,
+        authorization: `Bearer ${token}`,
         ...(init?.headers ?? {}),
       },
     });
@@ -32,6 +36,7 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
   }
   if (!res.ok) {
     const body = (await res.json().catch(() => null)) as { error?: string } | null;
+    if (res.status === 401) throw new ApiError('You’re signed out. Sign in again.', 401);
     throw new ApiError(body?.error ?? 'Something went wrong. Try again.', res.status);
   }
   return (await res.json()) as T;

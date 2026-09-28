@@ -11,7 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import * as api from './api';
-import { loadToken } from './session';
+import { dropSession, loadToken } from './session';
 import type { NewPlan, Plan } from './types';
 
 const PLAN_KEY = 'snitchdog.plan.v3';
@@ -67,15 +67,24 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.setItem(NAMES_KEY, JSON.stringify(next));
   };
 
+  /** Signed out on the server: forget everything on this phone. The tabs notice the plan is gone
+   *  and send the person back to the account screen. */
+  const signedOut = useCallback(async () => {
+    await dropSession();
+    await saveNames({});
+    await keep(null);
+  }, [keep]);
+
   const refresh = useCallback(async () => {
     if (!(await loadToken())) return keep(null);
     try {
       return await keep(await api.fetchPlan());
-    } catch {
+    } catch (err) {
+      if (err instanceof api.ApiError && err.status === 401) return signedOut().then(() => null);
       // Offline: keep showing the last synced plan.
       return plan;
     }
-  }, [keep, plan]);
+  }, [keep, plan, signedOut]);
 
   useEffect(() => {
     (async () => {
@@ -85,14 +94,28 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
       setReady(true);
       // Then catch up with the server in the background (LAUNCH-3).
       if (await loadToken()) {
-        api.fetchPlan().then(keep).catch(() => {});
+        api.fetchPlan()
+          .then(keep)
+          .catch((err) => {
+            if (err instanceof api.ApiError && err.status === 401) signedOut();
+          });
       }
     })();
     // Runs once; keep is stable.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const run = useCallback(async (call: () => Promise<Plan>) => (await keep(await call()))!, [keep]);
+  const run = useCallback(
+    async (call: () => Promise<Plan>) => {
+      try {
+        return (await keep(await call()))!;
+      } catch (err) {
+        if (err instanceof api.ApiError && err.status === 401) await signedOut();
+        throw err;
+      }
+    },
+    [keep, signedOut],
+  );
 
   const create = useCallback(
     async (p: NewPlan) => {
