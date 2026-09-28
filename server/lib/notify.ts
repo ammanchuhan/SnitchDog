@@ -8,6 +8,23 @@ import { write, type Moment } from './coach';
 import { type PlanRow, type WitnessRow, getWitnesses, isWatching, sql, witnessName } from './db';
 import { pushTo, type PushData } from './push';
 import { send } from './telegram';
+import { localNow } from './time';
+
+/** Most app-authored messages a plan's witnesses get in a day (TG-4). Leaving messages (the
+ *  account was deleted, or the goal was reached) always go: there's nothing after them. */
+const DAILY_CAP = 3;
+const UNCAPPED = new Set<Moment['kind']>(['witness_ended', 'witness_finished']);
+
+/** Counts one message against today's cap; false when the cap is already reached. */
+async function underCap(p: PlanRow): Promise<boolean> {
+  const { date } = localNow(p.timezone);
+  const rows = (await sql`
+    insert into witness_sends (plan_id, day, sent) values (${p.id}, ${date}, 1)
+    on conflict (plan_id, day) do update set sent = witness_sends.sent + 1
+    returning sent
+  `) as { sent: number }[];
+  return rows[0].sent <= DAILY_CAP;
+}
 
 export async function tellOwner(
   p: PlanRow,
@@ -32,6 +49,10 @@ export async function tellWitnesses(
 ): Promise<string[]> {
   const watching = (witnesses ?? (await getWitnesses(p.id))).filter(isWatching);
   if (!watching.length) return [];
+  if (!UNCAPPED.has(m.kind) && !(await underCap(p))) {
+    console.warn('[notify] daily witness cap reached', p.id);
+    return [];
+  }
   const text = await write(p, history, m);
   const told: string[] = [];
   for (const w of watching) {
