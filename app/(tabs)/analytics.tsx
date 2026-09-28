@@ -75,6 +75,7 @@ export default function Analytics() {
       <View style={{ paddingTop: space(6) }}>
         <ListGroup>
           <ListRow label="Every weigh-in" value={`${plan.weighIns.length}`} onPress={() => router.push('/history')} />
+          <ListRow label="Progress photos" onPress={() => router.push('/photos')} />
         </ListGroup>
       </View>
 

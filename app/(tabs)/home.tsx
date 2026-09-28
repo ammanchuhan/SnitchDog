@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,6 +12,7 @@ import { Snitch, SnitchMood } from '../../src/components/Snitch';
 import { TAB_BAR_CLEARANCE } from '../../src/components/TabBar';
 import { Text } from '../../src/components/Text';
 import { checkTarget, heightOf } from '../../src/lib/limits';
+import { hasMirrorPhoto } from '../../src/lib/mirror';
 import { usePlan } from '../../src/lib/store';
 import {
   currentAverage,
@@ -22,6 +23,8 @@ import {
   progress,
   stepsOn,
   watching,
+  weekStart,
+  weekdayOf,
   weighInOn,
   workoutFor,
   workoutsDue,
@@ -66,6 +69,14 @@ export default function Home() {
   const router = useRouter();
   const t = useTheme();
   const [refreshing, setRefreshing] = useState(false);
+  const [mirrorTaken, setMirrorTaken] = useState(true);
+
+  // Re-checked on focus: the photo is taken in a sheet on top of this tab.
+  useFocusEffect(
+    useCallback(() => {
+      if (plan) setMirrorTaken(hasMirrorPhoto(weekStart(plan.today)));
+    }, [plan]),
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -260,6 +271,19 @@ export default function Home() {
                 </View>
               </Card>
             ) : null}
+
+            {/* HOME-8: the last day of the week, once the first full week is behind them (MIR-5). */}
+            {weekdayOf(today) === 0 && !!plan.countsFrom && plan.countsFrom < weekStart(today) && !mirrorTaken && (
+              <Card style={{ gap: space(3) }}>
+                <View style={{ gap: space(1) }}>
+                  <Text variant="heading">Mirror photo</Text>
+                  <Text variant="small" tone="dim">
+                    This week’s. It stays on this phone; nobody else sees it.
+                  </Text>
+                </View>
+                <Button label="Take it" variant="secondary" onPress={() => router.push('/mirror')} />
+              </Card>
+            )}
 
             {allDone && (
               <Text variant="small" tone="dim">

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { suggestPlan } from '../lib/api';
+import { recentStepsAverage } from '../lib/steps';
 import type { Gym, Plan, RoutineSlot, Weekday } from '../lib/types';
 import { WEEKDAY_LABEL, WEIGH_INS_PER_WEEK } from '../lib/types';
 import { radius, space, useTheme } from '../theme';
@@ -40,9 +41,11 @@ export function PlanBuilder({
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    // Apple Health's recent average arrives with the native features; until then the server
-    // suggests a starting goal on its own.
-    suggestPlan().then(setSuggested).catch(() => {});
+    // The step suggestion starts from their recent Apple Health average, when there is one.
+    recentStepsAverage()
+      .then((average) => suggestPlan(average))
+      .then(setSuggested)
+      .catch(() => {});
   }, []);
 
   const dayList = [...days].sort(MON_FIRST).map((d) => WEEKDAY_LABEL[d]).join(', ');
