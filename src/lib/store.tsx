@@ -16,6 +16,10 @@ import type { NewPlan, Plan } from './types';
 
 const PLAN_KEY = 'snitchdog.plan.v3';
 const NAMES_KEY = 'snitchdog.witness-names.v1';
+/** Weigh-ins taken offline, sent on the next refresh (NFR-2). The server takes one a day late. */
+const QUEUE_KEY = 'snitchdog.weigh-in-queue.v1';
+
+type Queued = { value: number; verified: boolean; date: string; loggedAt: string };
 
 type Names = Record<string, string>;
 
@@ -71,20 +75,42 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
    *  and send the person back to the account screen. */
   const signedOut = useCallback(async () => {
     await dropSession();
+    await AsyncStorage.removeItem(QUEUE_KEY);
     await saveNames({});
     await keep(null);
   }, [keep]);
 
+  /** Sends weigh-ins that were logged offline. Stops at the first that still can't go. */
+  const flushQueue = useCallback(async () => {
+    const queued = JSON.parse((await AsyncStorage.getItem(QUEUE_KEY)) ?? '[]') as Queued[];
+    const left: Queued[] = [];
+    for (const q of queued) {
+      if (left.length) {
+        left.push(q);
+        continue;
+      }
+      try {
+        await api.logWeighIn(q.value, q.verified, q.date);
+      } catch (err) {
+        // Offline still: keep it. Refused (too late, or impossible): drop it.
+        if (err instanceof api.ApiError && err.status === 0) left.push(q);
+      }
+    }
+    if (left.length) await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(left));
+    else await AsyncStorage.removeItem(QUEUE_KEY);
+  }, []);
+
   const refresh = useCallback(async () => {
     if (!(await loadToken())) return keep(null);
     try {
+      await flushQueue();
       return await keep(await api.fetchPlan());
     } catch (err) {
       if (err instanceof api.ApiError && err.status === 401) return signedOut().then(() => null);
       // Offline: keep showing the last synced plan.
       return plan;
     }
-  }, [keep, plan, signedOut]);
+  }, [keep, plan, signedOut, flushQueue]);
 
   useEffect(() => {
     (async () => {
@@ -133,11 +159,22 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
 
   const logWeight = useCallback(
     async (value: number, verified: boolean) => {
-      const { plan: next, line } = await api.logWeighIn(value, verified);
-      await keep(next);
-      return line;
+      try {
+        const { plan: next, line } = await api.logWeighIn(value, verified);
+        await keep(next);
+        return line;
+      } catch (err) {
+        if (!(err instanceof api.ApiError) || err.status !== 0 || !plan) throw err;
+        // No connection (NFR-2): keep it on the phone, show it now, send it later.
+        const entry: Queued = { value: Math.round(value * 10) / 10, verified, date: plan.today, loggedAt: new Date().toISOString() };
+        const queued = JSON.parse((await AsyncStorage.getItem(QUEUE_KEY)) ?? '[]') as Queued[];
+        await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify([...queued.filter((q) => q.date !== entry.date), entry]));
+        const weighIns = [...plan.weighIns.filter((w) => w.date !== entry.date), { date: entry.date, value: entry.value, loggedAt: entry.loggedAt, verified }];
+        setPlan({ ...plan, weighIns: weighIns.sort((a, b) => a.date.localeCompare(b.date)) });
+        return 'Saved on this phone. It’ll send as soon as you’re back online.';
+      }
     },
-    [keep],
+    [keep, plan],
   );
 
   const nameWitness = useCallback(
@@ -149,6 +186,7 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
   );
 
   const clear = useCallback(async () => {
+    await AsyncStorage.removeItem(QUEUE_KEY);
     await saveNames({});
     await keep(null);
   }, [keep]);
