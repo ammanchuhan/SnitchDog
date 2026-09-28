@@ -3,6 +3,24 @@ appId: com.ammanchuhan.snitchdog
 ---
 - runFlow: _launch.yaml
 - tapOn: "Start"
+# Apple Health asks to read steps: the plan builder suggests a goal from the recent average.
+- extendedWaitUntil:
+    visible: "Health Access"
+    timeout: 10000
+    optional: true
+- runFlow:
+    when:
+      visible: "Health Access"
+    commands:
+      - tapOn: "Select All.*"
+      - tapOn: "Continue|Allow"
+      # iOS 27 then asks how much history to share.
+      - tapOn:
+          text: "Past 30 Days and Future Data"
+          optional: true
+      - tapOn:
+          text: "Allow"
+          optional: true
 - extendedWaitUntil:
     visible: ".*How many workouts a week.*"
     timeout: 15000

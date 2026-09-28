@@ -21,6 +21,12 @@ PASSWORD=${PASSWORD:-"e2e-password-123"}
 # The dev client's floating tools button sits over controls on the right (Send in the chat).
 xcrun simctl spawn "$DEVICE" defaults write com.ammanchuhan.snitchdog EXDevMenuShowFloatingActionButton -bool false
 
+# Permissions simctl can grant; notifications and Apple Health are answered in the flows.
+xcrun simctl privacy "$DEVICE" grant location-always com.ammanchuhan.snitchdog
+xcrun simctl privacy "$DEVICE" grant photos-add com.ammanchuhan.snitchdog
+# The simulated position: away from the gym the plan pins (1 Infinite Loop).
+xcrun simctl location "$DEVICE" set 37.7749,-122.4194
+
 for flow in $FLOWS; do
   if [ "$flow" = "01-signup.yaml" ]; then
     # The weigh-in flow picks this from the photo library (the simulator's camera takes nothing).
