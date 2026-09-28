@@ -97,6 +97,26 @@ export async function signInWithApple(identityToken: string, email?: string | nu
   await keep(token);
 }
 
+/** Ask for a reset code (AUTH-8). The answer is the same whether or not the account exists. */
+export async function requestReset(email: string): Promise<void> {
+  if (!BASE) throw new AuthError('No server is configured for this build.');
+  try {
+    await fetch(`${BASE}/api/auth/reset`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+  } catch {
+    throw new AuthError('Could not reach the server. Check your connection.');
+  }
+}
+
+/** The code and a new password. Signs this phone in; every other device is signed out. */
+export async function confirmReset(email: string, code: string, password: string) {
+  const { token } = await post('/api/auth/reset/confirm', { email, code, password });
+  await keep(token);
+}
+
 export async function signInWithGoogle(idToken: string) {
   const { token } = await post('/api/auth/google', { idToken });
   await keep(token);
@@ -119,7 +139,7 @@ export async function signOut() {
 }
 
 /** Erasure. The server drops the account and everything that cascades from it — the plan, the
- *  weigh-ins, the sessions, the coach's memory, and both Telegram chat links. The device copy
+ *  weigh-ins, the workouts, the chat, and every witness (who are told first, P4). The device copy
  *  goes either way: a failed request must never leave someone unable to walk away. */
 export async function deleteAccount(): Promise<boolean> {
   // Same reason as signOut: never depend on the cache being warm for something irreversible.

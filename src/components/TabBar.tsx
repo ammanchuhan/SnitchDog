@@ -10,7 +10,7 @@ import { Text } from './Text';
  *
  * The native bar was the earlier choice, for feeling like a phone app rather than a website in a
  * frame. This trades that for a bar that sits *in* the page: content scrolls under it and the
- * blur lets the ember banner or a chart tint it as it passes, so the app reads as one surface.
+ * blur lets the alarm banner or a chart tint it as it passes, so the app reads as one surface.
  *
  * Icons stay SF Symbols, so they still match the platform even though the bar no longer is one.
  */
@@ -27,9 +27,10 @@ type TabBarProps = {
 };
 
 const ICONS: Record<string, { on: SFSymbol; off: SFSymbol; label: string }> = {
+  home: { on: 'house.fill', off: 'house', label: 'Home' },
   analytics: { on: 'chart.line.uptrend.xyaxis', off: 'chart.line.uptrend.xyaxis', label: 'Analytics' },
-  today: { on: 'house.fill', off: 'house', label: 'Home' },
   coach: { on: 'bubble.left.fill', off: 'bubble.left', label: 'Coach' },
+  profile: { on: 'person.crop.circle.fill', off: 'person.crop.circle', label: 'Profile' },
 };
 
 /** What a scrolling screen must leave clear at its bottom.

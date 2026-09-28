@@ -4,25 +4,21 @@ import { useEffect, useState } from 'react';
 import { Platform, Pressable, View } from 'react-native';
 
 import { Button } from '../src/components/Button';
-import { Ember } from '../src/components/Ember';
 import { Field } from '../src/components/Field';
 import { Screen } from '../src/components/Screen';
-import { SpeechBubble } from '../src/components/SpeechBubble';
+import { Snitch } from '../src/components/Snitch';
 import { Text } from '../src/components/Text';
 import { AuthError, signIn, signInWithApple, signUp } from '../src/lib/session';
-import { usePlan } from '../src/lib/store';
 import { radius, space, useTheme } from '../src/theme';
 
-/** Sign in, or make an account.
+/** Sign in, or make an account (AUTH-1..7).
  *
- * The account exists for one reason: a plan has to belong to someone, or the server cannot tell
- * whose commitment it is being asked about. So this screen stays out of the way — Ember says what
- * it's for in one line and then asks for the least it can.
+ * The account exists so a plan belongs to someone. This screen stays out of the way: Snitch is
+ * here, but silent (AUTH-2), a different pose per mode, and it asks for the least it can.
  */
 export default function Auth() {
   const t = useTheme();
   const router = useRouter();
-  const { hydrate } = usePlan();
 
   const [mode, setMode] = useState<'in' | 'up'>('up');
   const [email, setEmail] = useState('');
@@ -48,11 +44,7 @@ export default function Auth() {
     setError(null);
     try {
       await work();
-      // The store loaded before anyone was signed in, so it found nothing. Now that there is a
-      // token, pull this account's plan down — otherwise signing in on a device with no local
-      // copy drops the person into onboarding as though they had never been here.
-      await hydrate();
-      // Index decides where to land: straight into the plan, or into Ember's sign-up.
+      // Index decides where to land, asking the server for this account's plan first.
       router.replace('/');
     } catch (err) {
       setError(err instanceof AuthError ? err.message : 'Something went wrong. Try again.');
@@ -85,18 +77,14 @@ export default function Auth() {
 
   return (
     <Screen>
-      <View style={{ alignItems: 'center', paddingTop: space(6), gap: space(4) }}>
-        <SpeechBubble
-          lines={
-            creating
-              ? ['Before we start — this is so your plan is yours,', 'and nobody else can see it.']
-              : ['Welcome back.']
-          }
-        />
-        <Ember mood={creating ? 'hello' : 'happy'} height={110} />
+      <View style={{ alignItems: 'center', paddingTop: space(8), gap: space(4) }}>
+        <Snitch mood={creating ? 'hello' : 'ready'} height={150} />
+        <Text variant="title" center>
+          {creating ? 'Make your account' : 'Welcome back'}
+        </Text>
       </View>
 
-      <View style={{ gap: space(4), marginTop: space(8) }}>
+      <View style={{ gap: space(4), marginTop: space(6) }}>
         <Field
           label="Email"
           value={email}
@@ -125,6 +113,19 @@ export default function Auth() {
         {/* The placeholder states the rule, then disappears the moment you type — leaving the
             button greyed out with nothing explaining why. Count down instead, so the reason for
             a dead button is always on screen. Dim, not ember: this is not an error yet. */}
+        {!creating ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push({ pathname: '/reset', params: { email: email.trim() } })}
+            hitSlop={8}
+            style={{ alignSelf: 'flex-start', marginTop: -space(2) }}
+          >
+            <Text variant="small" tone="dim">
+              Forgot password?
+            </Text>
+          </Pressable>
+        ) : null}
+
         {short ? (
           <Text variant="small" tone="dim" style={{ marginTop: -space(2) }}>
             {MIN_PASSWORD - password.length} more{' '}

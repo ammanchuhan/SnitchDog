@@ -1,12 +1,9 @@
 /** The domain, in one file.
  *
- * A plan has two streams that are judged differently, because they fail differently:
- *
- *   Weighing    happens every morning, but a single missed morning means nothing. What matters
- *               is how many times you stood on the scale this week. Graded weekly, against a
- *               floor.
- *   Routine     is scheduled — Monday 6pm, Thursday 6pm — so the coach can ask about a specific
- *               session instead of "did you do a thing today". Graded per session.
+ * The server is the source of truth (P5): `Plan` is what GET /api/plan returns, cached on the
+ * phone. Anything that decides what a witness hears (the week's floor, what's still needed) comes
+ * from the server as `plan.week`; the helpers here are for display: averages, the calendar, the
+ * week tiles.
  *
  * Progress is measured on a rolling seven-day average, never on this morning's number: body
  * weight swings two or three pounds on water alone, and a progress bar that reacts to that is
@@ -18,116 +15,117 @@ export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6; // Sunday … Saturday
 export const WEEKDAY_LABEL = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
 export const WEEKDAY_LETTER = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const;
 
-/** Weigh-ins required every week, for everyone.
- *
- * Deliberately not a setting. A difficulty dial is the first thing people turn down the moment
- * it starts to bite, which is the exact failure this product exists to prevent. Three is also
- * the number worth defending on safety grounds: enough readings for an honest average, not so
- * many that the app is pushing anyone toward weighing themselves every day.
- */
+/** Weigh-ins required every week, for everyone. Deliberately not a setting: a difficulty dial is
+ *  the first thing people turn down the moment it starts to bite. */
 export const WEIGH_INS_PER_WEEK = 3;
 
-/** The outcome being chased, and how often you have to measure it. */
-export type Goal = {
-  unit: 'lb' | 'kg';
-  start: number;
-  target: number;
-  /** The weigh-in prompt lands here — you weigh when you get up, so this is when you get up. */
-  wakeHour: number;
-  /** Always WEIGH_INS_PER_WEEK today; kept on the record so a maintenance mode can differ. */
-  perWeek: number;
-};
+export type Unit = 'lb' | 'kg';
+export type HeightUnit = 'ft' | 'cm';
+export type Gender = 'woman' | 'man' | 'non_binary' | 'prefer_not';
+export type Style = 'gentle' | 'balanced' | 'tough';
 
-/** A recurring session: "Lift, Mon/Wed/Fri, by 7pm". */
-export type RoutineSlot = {
-  id: string;
-  label: string;
-  days: Weekday[];
-  /** Local hour by which it should be done; the coach asks at this time. */
-  hour: number;
-};
+export type Goal = { unit: Unit; start: number; target: number; perWeek: number };
+
+/** A scheduled workout: "Lift, Mon/Wed/Fri, by 6 pm". Verified by being at the gym that day. */
+export type RoutineSlot = { id: string; label: string; days: Weekday[]; hour: number };
+
+export type Gym = { name: string; lat: number; lng: number; radius: number };
 
 export type WeighIn = {
-  /** Local calendar day, YYYY-MM-DD. One per day, ever. */
+  /** Local calendar day, YYYY-MM-DD. One per day. */
   date: string;
   value: number;
   loggedAt: string;
-  /** The photo of the scale, taken with the camera at the moment of logging. A file name inside
-   *  the app's documents folder (never a full path: that changes between app installs). The
-   *  photo stays on the phone. */
-  photo?: string;
-  /** How the number is backed: a photo in the app, or a photo sent to the bot. Entries from
-   *  before photos were required have neither. */
-  proof?: 'camera' | 'telegram';
+  /** False when OCR failed three times and the number was typed (Q20). */
+  verified: boolean;
 };
 
-export type SessionStatus = 'done' | 'missed';
-
-export type Session = {
+export type Workout = {
   date: string;
   slotId: string;
-  status: SessionStatus;
-  answeredAt?: string;
-  /** Set the moment the witness was told about this session. */
+  status: 'done' | 'missed' | 'excused';
+  minutes?: number;
+  /** Set when witnesses were told about the run this workout ended. */
   escalatedAt?: string;
 };
 
-export type Witness = {
-  name: string;
-  /** False until they open the invite — until then, nobody is actually watching. */
-  linked: boolean;
-  linkedAt?: string;
-  inviteToken: string;
+export type WitnessStatus = 'waiting' | 'watching' | 'stepped_back' | 'expired';
+
+export const STATUS_LABEL: Record<WitnessStatus, string> = {
+  waiting: 'Waiting',
+  watching: 'Watching',
+  stepped_back: 'Stepped back',
+  expired: 'Invite expired',
 };
 
-export type HeightUnit = 'ft' | 'cm';
-export type Schedule = 'day' | 'early' | 'late' | 'varies' | 'home';
-export type TrainTime = 'morning' | 'midday' | 'evening' | 'any';
-/** How much they're signing up for: sets the number of workouts a week. */
-export type Commitment = 'easing' | 'serious' | 'all_in';
-/** How fast they want to move, as a share of body weight a week. Sets expectations, not rules. */
-export type Pace = 'steady' | 'moderate' | 'fast';
+export type Witness = {
+  id: string;
+  /** The owner's name for them. Kept on the phone until they accept (WIT-8), so the store fills
+   *  it in from local storage; undefined on a new phone before they've accepted. */
+  name?: string;
+  /** What Telegram calls them, once they've accepted. */
+  telegramName?: string;
+  inviteToken: string;
+  status: WitnessStatus;
+  linkedAt?: string;
+  expiresAt: string;
+};
 
-/** About the person, asked once at sign-up and used to build the plan and set an honest target
- *  range. **Stays on this phone.** Nothing the server does needs a height or an age, so they are
- *  stripped before any sync (see api.ts). All optional: plans made before sign-up asked lack it. */
-/** Asked so the generated workout plan and Ember's phrasing fit the person.
- *  Deliberately NOT used to move the healthy-weight floor: the standard BMI range is not
- *  sex-specific, and inventing one would be inventing medicine. */
-export type Gender = 'man' | 'woman' | 'unspecified';
-
-export type Profile = {
-  gender?: Gender;
-  heightCm?: number;
-  /** How they entered it, so it's shown back the same way. */
-  heightUnit?: HeightUnit;
-  age?: number;
-  schedule?: Schedule;
-  trainTime?: TrainTime;
-  commitment?: Commitment;
-  pace?: Pace;
+export type WeekMath = {
+  done: number;
+  required: number;
+  needed: number;
+  left: number;
+  leftAfterToday: number;
+  todayDone: boolean;
+  met: boolean;
+  noRoom: boolean;
+  impossible: boolean;
+  counting: boolean;
 };
 
 export type Plan = {
   id: string;
-  /** First name only — it appears in the message the witness receives. */
   ownerName: string;
+  email?: string;
+  /** False for an Apple-only account: there's no password to change. */
+  hasPassword: boolean;
   timezone: string;
   createdAt: string;
+  /** The local day the first witness accepted: nothing counts before it (WIT-1). */
+  countsFrom: string | null;
   goal: Goal;
-  profile?: Profile;
+  profile: { heightCm?: number; heightUnit?: HeightUnit; age?: number; gender?: Gender };
+  /** Set once the plan Snitch built in chat is confirmed. Until then Home shows the plan banner. */
+  confirmedAt?: string;
   routine: RoutineSlot[];
-  witness: Witness;
+  gym?: Gym;
+  stepsGoal?: number;
+  style: Style;
+  pause?: { from: string; until: string; reason: string };
+  witnesses: Witness[];
+  escalatedWeeks: string[];
   weighIns: WeighIn[];
-  sessions: Session[];
-  /** Set once the owner links their own messaging account. */
-  ownerChatId?: string;
-  /** Weeks already reported to the witness, so a bad week is only escalated once. */
-  escalatedWeeks?: string[];
-  /** Running score per line kind, taught by the thumbs on the home screen. */
-  lineVotes?: Partial<Record<string, number>>;
-  /** Line kinds already voted on today, so the thumbs don't re-ask. */
-  lineVotedOn?: Record<string, 'up' | 'down'>;
+  workouts: Workout[];
+  steps: { date: string; steps: number }[];
+  passes: { kind: 'week' | 'workout'; ref: string; reason: string; createdAt: string }[];
+  passesLeft: number;
+  /** The plan's local today, and how its week stands, as the server judges it. */
+  today: string;
+  week: WeekMath;
+};
+
+/** What finishing sign-up sends. Witness names stay on the phone (WIT-8). */
+export type NewPlan = {
+  ownerName: string;
+  age: number;
+  heightCm: number;
+  heightUnit: HeightUnit;
+  gender?: Gender;
+  unit: Unit;
+  start: number;
+  target: number;
+  witnessNames: string[];
 };
 
 /* ── dates ─────────────────────────────────────────────────────────────── */
@@ -140,25 +138,7 @@ export const shiftDate = (date: string, days: number) => {
   return toDate(new Date(y, m - 1, d + days));
 };
 
-export const weekdayOf = (date: string): Weekday =>
-  new Date(`${date}T12:00:00`).getDay() as Weekday;
-
-/** The calendar day an instant fell on, in the plan's timezone rather than this device's.
- *
- * §4: every date is the owner's local day, computed from the stored IANA zone. `toDate` reads
- * the device instead, which is right for "today" but wrong for a fixed instant — someone who
- * sets a plan up in New York and opens the app in Tokyo would otherwise compute a different
- * creation day from the server, and be shown a weekly floor the server does not agree with. */
-export const dateIn = (iso: string, timeZone: string): string => {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(new Date(iso));
-  const get = (type: string) => parts.find((x) => x.type === type)?.value ?? '';
-  return `${get('year')}-${get('month')}-${get('day')}`;
-};
+export const weekdayOf = (date: string): Weekday => new Date(`${date}T12:00:00`).getDay() as Weekday;
 
 /** Weeks run Monday to Sunday; the id is the Monday. */
 export function weekStart(date: string): string {
@@ -171,6 +151,12 @@ export const daysLeftInWeek = (date: string) => {
   return (day === 0 ? 0 : 7 - day) + 1; // includes today
 };
 
+/* ── witnesses ─────────────────────────────────────────────────────────── */
+
+export const witnessLabel = (w: Witness, i: number) => w.name ?? w.telegramName ?? `Witness ${i + 1}`;
+
+export const watching = (p: Plan) => p.witnesses.filter((w) => w.status === 'watching');
+
 /* ── weighing ──────────────────────────────────────────────────────────── */
 
 export const weighInOn = (p: Plan, date: string) => p.weighIns.find((w) => w.date === date);
@@ -180,7 +166,7 @@ export const weighInsInWeek = (p: Plan, date: string) => {
   return p.weighIns.filter((w) => weekStart(w.date) === start);
 };
 
-/** Rolling average over the last `span` days — the number the progress bar follows. */
+/** Rolling average over the last `span` days: the number the progress bar follows. */
 export function rollingAverage(p: Plan, endDate: string, span = 7): number | undefined {
   const first = shiftDate(endDate, -(span - 1));
   const window = p.weighIns.filter((w) => w.date >= first && w.date <= endDate);
@@ -189,7 +175,7 @@ export function rollingAverage(p: Plan, endDate: string, span = 7): number | und
 }
 
 /** The most recent seven-day average that exists, walking back if this week is empty. */
-export function currentAverage(p: Plan, date = toDate()): number | undefined {
+export function currentAverage(p: Plan, date = p.today): number | undefined {
   for (let back = 0; back <= 21; back += 7) {
     const avg = rollingAverage(p, shiftDate(date, -back));
     if (avg !== undefined) return avg;
@@ -197,152 +183,109 @@ export function currentAverage(p: Plan, date = toDate()): number | undefined {
   return undefined;
 }
 
-export const previousAverage = (p: Plan, date = toDate()) => rollingAverage(p, shiftDate(date, -7));
+export const previousAverage = (p: Plan, date = p.today) => rollingAverage(p, shiftDate(date, -7));
 
 export const latestWeighIn = (p: Plan) => p.weighIns[p.weighIns.length - 1];
 
 /** 0..1 toward the target, measured on the average rather than today's reading. */
-export function progress(p: Plan, date = toDate()): number {
+export function progress(p: Plan, date = p.today): number {
   const now = currentAverage(p, date) ?? p.goal.start;
   const span = p.goal.target - p.goal.start;
   if (span === 0) return 1;
   return Math.max(0, Math.min(1, (now - p.goal.start) / span));
 }
 
-/** The floor for a given week.
- *
- * Starting on a Saturday should not mean failing your first week before you have done anything,
- * so the week a plan is created in is pro-rated to the mornings that were actually available. */
+/** The floor for a past or current week, from the day the plan started counting. Display only;
+ *  the server's copy (server/lib/rules.ts) is what witnesses are judged by. */
 export function requiredInWeek(p: Plan, date: string): number {
-  // The plan's zone, not the phone's — the server grades this week with the same basis.
-  const created = dateIn(p.createdAt, p.timezone);
-  if (weekStart(date) !== weekStart(created)) return p.goal.perWeek;
-  return Math.min(p.goal.perWeek, daysLeftInWeek(created));
+  if (!p.countsFrom || p.countsFrom > shiftDate(weekStart(date), 6)) return 0;
+  if (weekStart(date) !== weekStart(p.countsFrom)) return p.goal.perWeek;
+  return Math.min(p.goal.perWeek, daysLeftInWeek(p.countsFrom));
 }
 
-/** How the week is going, and whether the floor is still reachable. */
-export function weekStatus(p: Plan, date = toDate()) {
-  const done = weighInsInWeek(p, date).length;
-  const required = requiredInWeek(p, date);
-  const needed = Math.max(0, required - done);
-  const left = daysLeftInWeek(date);
-  const todayDone = !!weighInOn(p, date);
-  return {
-    done,
-    required,
-    needed,
-    left,
-    met: done >= required,
-    /** Still possible, but only if they weigh in most of the days that remain. */
-    atRisk: needed > 0 && needed >= left,
-    impossible: needed > left,
-    todayDone,
-  };
+/* ── workouts ──────────────────────────────────────────────────────────── */
+
+export const slotsOn = (p: Plan, date: string) => p.routine.filter((s) => s.days.includes(weekdayOf(date)));
+
+export const workoutFor = (p: Plan, date: string, slotId: string) =>
+  p.workouts.find((s) => s.date === date && s.slotId === slotId);
+
+export const isPaused = (p: Plan, date: string) => !!p.pause && date >= p.pause.from && date <= p.pause.until;
+
+/** Workouts owed on a day: the plan is confirmed and counting, and the day isn't paused. */
+export function workoutsDue(p: Plan, date: string) {
+  if (!p.countsFrom || !p.confirmedAt || date < p.countsFrom || isPaused(p, date)) return [];
+  return slotsOn(p, date);
 }
 
-/* ── routine ───────────────────────────────────────────────────────────── */
-
-export const slotsOn = (p: Plan, date: string) =>
-  p.routine.filter((s) => s.days.includes(weekdayOf(date)));
-
-export const sessionFor = (p: Plan, date: string, slotId: string) =>
-  p.sessions.find((s) => s.date === date && s.slotId === slotId);
-
-/** Sessions that were scheduled and are still unanswered, oldest first. */
-export function openSessions(p: Plan, date = toDate()) {
-  return slotsOn(p, date)
-    .filter((slot) => !sessionFor(p, date, slot.id))
-    .sort((a, b) => a.hour - b.hour);
-}
-
-/** Consecutive scheduled sessions missed, walking back from `date`. */
-export function missedRun(p: Plan, date = toDate()): number {
-  const created = toDate(new Date(p.createdAt));
-  let run = 0;
-  for (let i = 0; i < 30; i += 1) {
-    const day = shiftDate(date, -i);
-    if (day < created) return run;
-    for (const slot of slotsOn(p, day).sort((a, b) => b.hour - a.hour)) {
-      const s = sessionFor(p, day, slot.id);
-      if (!s) continue; // unanswered and possibly not due yet — not a miss
-      if (s.status === 'missed') run += 1;
-      else return run;
-    }
-  }
-  return run;
-}
-
-export const sessionsThisWeek = (p: Plan, date = toDate()) => {
+export const workoutsThisWeek = (p: Plan, date = p.today) => {
   const start = weekStart(date);
-  const created = toDate(new Date(p.createdAt));
-  // Sessions scheduled before the plan existed are not yours to have missed.
-  const scheduled = Array.from({ length: 7 }, (_, i) => shiftDate(start, i))
-    .filter((d) => d >= created)
-    .flatMap((d) => slotsOn(p, d).map((slot) => ({ date: d, slot, session: sessionFor(p, d, slot.id) })));
+  const scheduled = Array.from({ length: 7 }, (_, i) => shiftDate(start, i)).flatMap((d) =>
+    workoutsDue(p, d).map((slot) => ({ date: d, slot, workout: workoutFor(p, d, slot.id) })),
+  );
   return {
     scheduled,
-    done: scheduled.filter((x) => x.session?.status === 'done').length,
+    done: scheduled.filter((x) => x.workout?.status === 'done').length,
     total: scheduled.length,
   };
 };
 
+export const stepsOn = (p: Plan, date: string) => p.steps.find((s) => s.date === date)?.steps;
+
 /* ── the counter that matters ──────────────────────────────────────────── */
 
 export const escalationCount = (p: Plan) =>
-  p.sessions.filter((s) => s.escalatedAt).length + (p.escalatedWeeks?.length ?? 0);
+  p.workouts.filter((s) => s.escalatedAt).length + weeksTold(p).length;
+
+/** Weeks witnesses were told about: judged and came up short without a pass. The server records
+ *  every judged week in escalatedWeeks, told or not, so the shortfall is worked out here. */
+export const weeksTold = (p: Plan) =>
+  p.escalatedWeeks.filter(
+    (w) =>
+      weighInsInWeek(p, w).length < requiredInWeek(p, w) &&
+      !p.passes.some((x) => x.kind === 'week' && x.ref === w),
+  );
 
 /* ── how a day reads, looking back ─────────────────────────────────────── */
 
 export type DayState =
-  | 'clean'    // weighed in, and anything scheduled got done
-  | 'quiet'    // nothing owed, or a skipped morning the week could afford
-  | 'slipped'  // a session missed, or a morning skipped that the week could not afford
-  | 'called'   // the day the witness was contacted
+  | 'clean' // weighed in, and anything scheduled got done
+  | 'quiet' // nothing owed, or a skipped morning the week could afford
+  | 'slipped' // a workout missed, or a morning skipped that the week could not afford
+  | 'called' // the day the witnesses were told
   | 'future'
-  | 'before';  // before this plan existed
+  | 'before'; // before the plan counted
 
 /** True once a week is over and finished below its floor. */
-export function weekCameUpShort(p: Plan, date: string, today = toDate()): boolean {
-  const start = weekStart(date);
-  if (weekStart(today) === start) return false; // still running
+export function weekCameUpShort(p: Plan, date: string, today = p.today): boolean {
+  if (weekStart(today) === weekStart(date)) return false; // still running
   return weighInsInWeek(p, date).length < requiredInWeek(p, date);
 }
 
-export function dayState(p: Plan, date: string, today = toDate()): DayState {
+export function dayState(p: Plan, date: string, today = p.today): DayState {
   if (date > today) return 'future';
-  if (date < toDate(new Date(p.createdAt))) return 'before';
+  if (!p.countsFrom || date < p.countsFrom) return weighInOn(p, date) ? 'clean' : 'before';
 
   const start = weekStart(date);
-  // A week-close call lands on the Sunday it was earned; a session call lands on its own day.
-  const calledForWeek = (p.escalatedWeeks ?? []).includes(start) && weekdayOf(date) === 0;
-  const calledForSession = p.sessions.some((s) => s.date === date && s.escalatedAt);
-  if (calledForWeek || calledForSession) return 'called';
+  const calledForWeek = weeksTold(p).includes(start) && weekdayOf(date) === 0;
+  const calledForWorkout = p.workouts.some((s) => s.date === date && s.escalatedAt);
+  if (calledForWeek || calledForWorkout) return 'called';
 
-  const missedSession = slotsOn(p, date).some((slot) => sessionFor(p, date, slot.id)?.status === 'missed');
-  if (missedSession) return 'slipped';
-
+  if (slotsOn(p, date).some((slot) => workoutFor(p, date, slot.id)?.status === 'missed')) return 'slipped';
   if (weighInOn(p, date)) return 'clean';
-
-  // A skipped morning only counts against you if the week ended up short — which is the whole
-  // point of a weekly floor, and the only way the calendar tells the truth about it.
   return weekCameUpShort(p, date, today) ? 'slipped' : 'quiet';
 }
 
-/** Completed weeks that met the floor, oldest first, plus the best unbroken run. */
-export function weekHistory(p: Plan, today = toDate()) {
-  const created = toDate(new Date(p.createdAt));
+/** Weeks since the plan started counting, oldest first, plus the best unbroken run. */
+export function weekHistory(p: Plan, today = p.today) {
   const weeks: { start: string; done: number; required: number; met: boolean; open: boolean }[] = [];
-  let cursor = weekStart(created);
+  if (!p.countsFrom) return { weeks, best: 0, current: 0 };
+  let cursor = weekStart(p.countsFrom);
   while (cursor <= weekStart(today)) {
     const done = weighInsInWeek(p, cursor).length;
     const required = requiredInWeek(p, cursor);
-    weeks.push({
-      start: cursor,
-      done,
-      required,
-      met: done >= required,
-      open: cursor === weekStart(today),
-    });
+    const excused = p.passes.some((x) => x.kind === 'week' && x.ref === cursor);
+    weeks.push({ start: cursor, done, required, met: done >= required || excused, open: cursor === weekStart(today) });
     cursor = shiftDate(cursor, 7);
   }
   let best = 0;
@@ -370,14 +313,15 @@ export function monthGrid(month: string) {
   return cells;
 }
 
-/** The last N days, oldest first, for the strip on the home screen. */
-export function recentDays(p: Plan, n: number, date = toDate()) {
-  return Array.from({ length: n }, (_, i) => {
-    const day = shiftDate(date, i - n + 1);
+/** This week, Monday to Sunday, for the strip on Home (HOME-9). */
+export function thisWeekDays(p: Plan, date = p.today) {
+  const start = weekStart(date);
+  return Array.from({ length: 7 }, (_, i) => {
+    const day = shiftDate(start, i);
     return {
       date: day,
       weighIn: weighInOn(p, day),
-      sessions: slotsOn(p, day).map((slot) => ({ slot, session: sessionFor(p, day, slot.id) })),
+      workouts: workoutsDue(p, day).map((slot) => ({ slot, workout: workoutFor(p, day, slot.id) })),
     };
   });
 }

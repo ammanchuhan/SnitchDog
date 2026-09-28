@@ -1,32 +1,36 @@
-/** Local-first state for the plan.
+/** The plan, as the server last said it was.
  *
- * Writes land on device immediately and sync to the server in the background, so logging a
- * weight never waits on a network. The server owns the fields the app can't know on its own —
- * whether the witness is linked, and what they have been told — so its copy of those wins.
+ * Cloud-first (P5): every change is a server call, and the plan it answers with replaces the one
+ * here. The phone keeps a copy so the app opens straight to the last synced state, offline or not
+ * (NFR-2).
+ *
+ * One thing lives only on the phone: the names the owner gave witnesses who haven't accepted yet
+ * (WIT-8). They're merged into the plan here, and sent to the server once that witness accepts.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
-import { fetchMyPlan, fetchPlan, pushPlan } from './api';
+import * as api from './api';
 import { loadToken } from './session';
-import { deletePhoto } from './photos';
-import { Plan, Session, SessionStatus, toDate, WeighIn } from './types';
+import type { NewPlan, Plan } from './types';
 
-const KEY = 'snitchdog.plan.v2';
+const PLAN_KEY = 'snitchdog.plan.v3';
+const NAMES_KEY = 'snitchdog.witness-names.v1';
+
+type Names = Record<string, string>;
 
 type Ctx = {
   ready: boolean;
   plan: Plan | null;
-  start: (p: Plan) => Promise<void>;
-  /** Today's number. Replaces an earlier reading on the same day rather than adding one. */
-  /** Every weigh-in carries its photo; the date is only for tests and backfills. */
-  logWeight: (value: number, photo: string, date?: string) => Promise<void>;
-  answerSession: (slotId: string, status: SessionStatus, date?: string) => Promise<void>;
-  /** Editing the plan: goal, wake time, routine, witness. */
-  update: (patch: Partial<Plan>) => Promise<void>;
-  refresh: () => Promise<void>;
-  /** Pull this account's plan down after signing in on a device that has nothing stored. */
-  hydrate: () => Promise<Plan | null>;
+  /** Ask the server again. Null means this account has no plan yet. */
+  refresh: () => Promise<Plan | null>;
+  /** Finish sign-up. */
+  create: (p: NewPlan) => Promise<Plan>;
+  /** Run a server call that answers with the plan, and keep what it returns. */
+  run: (call: () => Promise<Plan>) => Promise<Plan>;
+  logWeight: (value: number, verified: boolean) => Promise<string>;
+  /** Name a witness the owner just added (kept on the phone until they accept). */
+  nameWitness: (id: string, name: string) => Promise<void>;
   clear: () => Promise<void>;
 };
 
@@ -35,125 +39,103 @@ const PlanContext = createContext<Ctx | null>(null);
 export function PlanProvider({ children }: { children: React.ReactNode }) {
   const [plan, setPlan] = useState<Plan | null>(null);
   const [ready, setReady] = useState(false);
+  const names = useRef<Names>({});
 
-  const persist = useCallback(async (next: Plan | null) => {
-    setPlan(next);
-    if (next) {
-      await AsyncStorage.setItem(KEY, JSON.stringify(next));
-      pushPlan(next); // fire and forget
-    } else {
-      await AsyncStorage.removeItem(KEY);
+  /** The server's plan with the phone's names filled in, and any name the server is now
+   *  allowed to have (the witness accepted) sent up. */
+  const keep = useCallback(async (remote: Plan | null) => {
+    if (!remote) {
+      setPlan(null);
+      await AsyncStorage.removeItem(PLAN_KEY);
+      return null;
     }
+    const merged: Plan = {
+      ...remote,
+      witnesses: remote.witnesses.map((w) => ({ ...w, name: w.name ?? names.current[w.id] })),
+    };
+    for (const w of remote.witnesses) {
+      const local = names.current[w.id];
+      if (w.status === 'watching' && !w.name && local) api.nameWitness(w.id, local).catch(() => {});
+    }
+    setPlan(merged);
+    await AsyncStorage.setItem(PLAN_KEY, JSON.stringify(merged));
+    return merged;
   }, []);
 
-  /** Nothing on this device, but somebody is signed in: a new phone, or the same one after
-   *  signing out. Their plan lives on the server — fetch it rather than sending them through
-   *  onboarding as if they were new. Writes straight to storage instead of going through
-   *  `persist`, which would push the plan we just received back up again. */
-  const hydrate = useCallback(async () => {
-    if (!(await loadToken())) return null;
-    const remote = await fetchMyPlan();
-    if (!remote) return null;
-    setPlan(remote);
-    await AsyncStorage.setItem(KEY, JSON.stringify(remote));
-    return remote;
-  }, []);
+  const saveNames = async (next: Names) => {
+    names.current = next;
+    await AsyncStorage.setItem(NAMES_KEY, JSON.stringify(next));
+  };
+
+  const refresh = useCallback(async () => {
+    if (!(await loadToken())) return keep(null);
+    try {
+      return await keep(await api.fetchPlan());
+    } catch {
+      // Offline: keep showing the last synced plan.
+      return plan;
+    }
+  }, [keep, plan]);
 
   useEffect(() => {
     (async () => {
-      const raw = await AsyncStorage.getItem(KEY);
-      if (raw) {
-        setPlan(JSON.parse(raw) as Plan);
-      } else {
-        await hydrate();
-      }
+      const [raw, rawNames] = await Promise.all([AsyncStorage.getItem(PLAN_KEY), AsyncStorage.getItem(NAMES_KEY)]);
+      names.current = rawNames ? (JSON.parse(rawNames) as Names) : {};
+      if (raw) setPlan(JSON.parse(raw) as Plan);
       setReady(true);
+      // Then catch up with the server in the background (LAUNCH-3).
+      if (await loadToken()) {
+        api.fetchPlan().then(keep).catch(() => {});
+      }
     })();
-    // hydrate is stable; this runs once, and signing in calls it again itself.
+    // Runs once; keep is stable.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const refresh = useCallback(async () => {
-    if (!plan) return;
-    const remote = await fetchPlan(plan.id);
-    if (!remote) return;
-    const told = new Map(remote.sessions.map((s) => [`${s.date}:${s.slotId}`, s.escalatedAt]));
-    const merged: Plan = {
-      ...plan,
-      witness: { ...plan.witness, linked: remote.witness.linked, linkedAt: remote.witness.linkedAt },
-      ownerChatId: remote.ownerChatId ?? plan.ownerChatId,
-      escalatedWeeks: remote.escalatedWeeks ?? plan.escalatedWeeks,
-      // The server may have answered on our behalf (a Telegram button) or recorded a miss.
-      weighIns: mergeWeighIns(plan.weighIns, remote.weighIns),
-      sessions: mergeSessions(plan.sessions, remote.sessions, told),
-    };
-    setPlan(merged);
-    await AsyncStorage.setItem(KEY, JSON.stringify(merged));
-  }, [plan]);
+  const run = useCallback(async (call: () => Promise<Plan>) => (await keep(await call()))!, [keep]);
 
-  const start = useCallback((p: Plan) => persist(p), [persist]);
+  const create = useCallback(
+    async (p: NewPlan) => {
+      const created = await api.createPlan(p);
+      // The server made one witness per name, in order; the names stay here.
+      const next = { ...names.current };
+      created.witnesses.forEach((w, i) => {
+        if (p.witnessNames[i]) next[w.id] = p.witnessNames[i];
+      });
+      await saveNames(next);
+      return (await keep(created))!;
+    },
+    [keep],
+  );
 
   const logWeight = useCallback(
-    async (value: number, photo: string, date = toDate()) => {
-      if (!plan) return;
-      const replaced = plan.weighIns.find((w) => w.date === date);
-      if (replaced?.photo && replaced.photo !== photo) deletePhoto(replaced.photo);
-      const weighIns = [
-        ...plan.weighIns.filter((w) => w.date !== date),
-        { date, value, loggedAt: new Date().toISOString(), photo, proof: 'camera' as const },
-      ].sort((a, b) => a.date.localeCompare(b.date));
-      await persist({ ...plan, weighIns });
+    async (value: number, verified: boolean) => {
+      const { plan: next, line } = await api.logWeighIn(value, verified);
+      await keep(next);
+      return line;
     },
-    [plan, persist],
+    [keep],
   );
 
-  const answerSession = useCallback<Ctx['answerSession']>(
-    async (slotId, status, date = toDate()) => {
-      if (!plan) return;
-      const previous = plan.sessions.find((s) => s.date === date && s.slotId === slotId);
-      const session: Session = {
-        date,
-        slotId,
-        status,
-        answeredAt: new Date().toISOString(),
-        escalatedAt: previous?.escalatedAt,
-      };
-      const sessions = [
-        ...plan.sessions.filter((s) => !(s.date === date && s.slotId === slotId)),
-        session,
-      ].sort((a, b) => a.date.localeCompare(b.date));
-      await persist({ ...plan, sessions });
+  const nameWitness = useCallback(
+    async (id: string, name: string) => {
+      await saveNames({ ...names.current, [id]: name });
+      setPlan((p) => (p ? { ...p, witnesses: p.witnesses.map((w) => (w.id === id ? { ...w, name } : w)) } : p));
     },
-    [plan, persist],
+    [],
   );
 
-  const update = useCallback(
-    async (patch: Partial<Plan>) => {
-      if (!plan) return;
-      await persist({ ...plan, ...patch });
-    },
-    [plan, persist],
-  );
-
-  const clear = useCallback(() => persist(null), [persist]);
+  const clear = useCallback(async () => {
+    await saveNames({});
+    await keep(null);
+  }, [keep]);
 
   const value = useMemo(
-    () => ({ ready, plan, start, logWeight, answerSession, update, refresh, hydrate, clear }),
-    [ready, plan, start, logWeight, answerSession, update, refresh, hydrate, clear],
+    () => ({ ready, plan, refresh, create, run, logWeight, nameWitness, clear }),
+    [ready, plan, refresh, create, run, logWeight, nameWitness, clear],
   );
 
   return <PlanContext.Provider value={value}>{children}</PlanContext.Provider>;
-}
-
-/** Local answers win; escalation timestamps come from the server. */
-function mergeSessions(local: Session[], remote: Session[], told: Map<string, string | undefined>) {
-  const out = new Map(local.map((s) => [`${s.date}:${s.slotId}`, s]));
-  for (const r of remote) {
-    const key = `${r.date}:${r.slotId}`;
-    const mine = out.get(key);
-    out.set(key, mine ? { ...mine, escalatedAt: told.get(key) ?? mine.escalatedAt } : r);
-  }
-  return [...out.values()].sort((a, b) => a.date.localeCompare(b.date));
 }
 
 export function usePlan() {
@@ -161,15 +143,3 @@ export function usePlan() {
   if (!ctx) throw new Error('usePlan must be used inside PlanProvider');
   return ctx;
 }
-
-/** Union by day. The server knows about weigh-ins sent to the bot; only the phone has the photos
- *  taken in the app, so a local entry keeps its photo even when the server has the same day. */
-function mergeWeighIns(local: WeighIn[], remote: WeighIn[]): WeighIn[] {
-  const byDate = new Map(remote.map((w) => [w.date, w]));
-  for (const w of local) {
-    const r = byDate.get(w.date);
-    byDate.set(w.date, r && r.loggedAt > w.loggedAt && r.proof === 'telegram' ? r : w);
-  }
-  return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
-}
-

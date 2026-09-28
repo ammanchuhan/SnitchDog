@@ -1,189 +1,176 @@
-import { useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  TextInput,
-  View,
-} from 'react-native';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useRef, useState } from 'react';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useRouter } from 'expo-router';
-
-import { CoachNote } from '../../src/components/CoachNote';
-import { Text } from '../../src/components/Text';
+import { Bubble } from '../../src/components/Bubble';
+import { PlanBuilder } from '../../src/components/PlanBuilder';
+import { SnitchAvatar } from '../../src/components/Snitch';
 import { TAB_BAR_CLEARANCE } from '../../src/components/TabBar';
-import { askCoach, ChatTurn, serverConfigured } from '../../src/lib/api';
-import { loadChat, saveChat } from '../../src/lib/chat';
+import { Text } from '../../src/components/Text';
+import { ApiError, askCoach, type ChatMessage, fetchChat, patchPlan } from '../../src/lib/api';
 import { usePlan } from '../../src/lib/store';
 import { font, radius, space, useTheme } from '../../src/theme';
 
-export default function Chat() {
-  const { plan, refresh } = usePlan();
-  const router = useRouter();
+/** The owner's only channel with Snitch (section 8): every nudge lands here as well as in a push,
+ *  and the plan is built here. The history lives on the server, so it follows you to a new
+ *  phone (COACH-8). */
+export default function Coach() {
+  const { plan, refresh, run } = usePlan();
   const t = useTheme();
+  const router = useRouter();
+  const params = useLocalSearchParams<{ build?: string }>();
   const scroller = useRef<ScrollView>(null);
 
-  const [turns, setTurns] = useState<ChatTurn[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const [draft, setDraft] = useState('');
   const [thinking, setThinking] = useState(false);
+  const [rebuilding, setRebuilding] = useState(false);
 
-  useEffect(() => {
-    loadChat().then(setTurns);
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchChat()
+        .then((r) => setMessages(r.messages))
+        .catch(() => {})
+        .finally(() => setLoaded(true));
+      if (params.build) setRebuilding(true);
+    }, [params.build]),
+  );
 
   if (!plan) return null;
+  const building = !plan.confirmedAt || rebuilding;
 
   async function send() {
     const message = draft.trim();
     if (!message || thinking) return;
-    const next = [...turns, { role: 'user' as const, text: message }];
-    setTurns(next);
+    const mine: ChatMessage = { id: `local-${Date.now()}`, role: 'user', text: message, kind: null, created_at: new Date().toISOString() };
+    setMessages((m) => [...m, mine]);
     setDraft('');
     setThinking(true);
-    saveChat(next);
-
-    const res = await askCoach(plan!.id, message, turns);
-    const reply =
-      res?.reply ??
-      (serverConfigured()
-        ? "I can't reach my notes right now. Log it in the app and I'll catch up."
-        : 'Your coach is offline until the app is connected to its server.');
-    const after = [...next, { role: 'coach' as const, text: reply }];
-    setTurns(after);
-    saveChat(after);
+    let reply: string;
+    try {
+      const res = await askCoach(message);
+      reply = res.reply;
+      if (res.changed) refresh(); // a pass was granted
+    } catch (err) {
+      reply = err instanceof ApiError && err.status === 0 ? 'I can’t reach my notes right now. Try again in a minute.' : 'Something went wrong on my end. Say that again?';
+    }
+    setMessages((m) => [...m, { id: `local-${Date.now()}-r`, role: 'coach', text: reply, kind: null, created_at: new Date().toISOString() }]);
     setThinking(false);
-    if (res?.changed) refresh(); // the coach may have logged something on your behalf
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }} edges={['top']}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        {/* No links in the header (COACH-1): "What Snitch remembers" is in Profile. */}
         <View
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            justifyContent: 'space-between',
+            gap: space(3),
             paddingHorizontal: space(6),
-            paddingVertical: space(4),
+            paddingVertical: space(3),
             borderBottomWidth: 1,
             borderBottomColor: t.lineSoft,
           }}
         >
+          <SnitchAvatar size={40} mood="grin" />
           <View>
-            <Text variant="heading">Ember</Text>
+            <Text variant="heading">Snitch</Text>
             <Text variant="small" tone="faint">
               Your coach
             </Text>
           </View>
-          <Pressable onPress={() => router.push('/memories')} hitSlop={12}>
-            <Text variant="label" tone="faint">
-              What Ember remembers ›
-            </Text>
-          </Pressable>
         </View>
 
         <ScrollView
           ref={scroller}
-          contentContainerStyle={{ padding: space(6), gap: space(4) }}
+          contentContainerStyle={{ padding: space(5), gap: space(4), paddingBottom: building ? TAB_BAR_CLEARANCE : space(5) }}
           onContentSizeChange={() => scroller.current?.scrollToEnd({ animated: true })}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Today's line from the coach, and the vote that teaches it what lands. */}
-          <CoachNote linkToChat={false} />
-
-          {turns.length === 0 && (
-            <View style={{ gap: space(3), paddingTop: space(6) }}>
-              <Text variant="title">What&rsquo;s in the way?</Text>
-              <Text variant="body" tone="dim">
-                Tell me what happened this week, or what keeps getting in the way. I remember what you
-                tell me.
-              </Text>
-            </View>
+          {!loaded && <ActivityIndicator color={t.textFaint} />}
+          {loaded && messages.length === 0 && !building && (
+            <Bubble role="coach" text="Tell me what’s getting in the way, or ask me anything about your plan. I remember what matters." />
           )}
-
-          {turns.map((turn, i) => (
-            <View
-              key={i}
-              style={{
-                alignSelf: turn.role === 'user' ? 'flex-end' : 'flex-start',
-                maxWidth: '85%',
-                backgroundColor: turn.role === 'user' ? t.text : t.surfaceHigh,
-                paddingHorizontal: space(4),
-                paddingVertical: space(3),
-                borderRadius: radius.lg,
-                borderBottomRightRadius: turn.role === 'user' ? radius.sm : radius.lg,
-                borderBottomLeftRadius: turn.role === 'user' ? radius.lg : radius.sm,
-              }}
-            >
-              <Text variant="body" style={{ color: turn.role === 'user' ? t.bg : t.text }}>
-                {turn.text}
-              </Text>
-            </View>
+          {messages.map((m) => (
+            <Bubble key={m.id} role={m.role} text={m.text} />
           ))}
+          {thinking && <ActivityIndicator color={t.textFaint} style={{ alignSelf: 'flex-start', marginLeft: 38 }} />}
 
-          {thinking && <ActivityIndicator color={t.textFaint} style={{ alignSelf: 'flex-start' }} />}
+          {building && (
+            <PlanBuilder
+              key={plan.confirmedAt ?? 'new'}
+              plan={plan}
+              onCancel={plan.confirmedAt ? () => { setRebuilding(false); router.setParams({ build: undefined }); } : undefined}
+              onConfirm={async (next) => {
+                await run(() => patchPlan(next));
+                setRebuilding(false);
+                router.setParams({ build: undefined });
+                fetchChat().then((r) => setMessages(r.messages)).catch(() => {});
+              }}
+            />
+          )}
         </ScrollView>
 
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'flex-end',
-            gap: space(3),
-            paddingHorizontal: space(6),
-            paddingTop: space(3),
-            // The composer is pinned to the bottom, so it is what has to clear the floating
-            // pill — the scroll content above it just stops at the composer.
-            paddingBottom: TAB_BAR_CLEARANCE,
-            borderTopWidth: 1,
-            borderTopColor: t.lineSoft,
-          }}
-        >
-          <TextInput
-            value={draft}
-            onChangeText={setDraft}
-            placeholder="Say something"
-            placeholderTextColor={t.textFaint}
-            selectionColor={t.ember}
-            multiline
+        {!building && (
+          <View
             style={{
-              flex: 1,
-              maxHeight: 120,
-              minHeight: 44,
-              color: t.text,
-              fontFamily: font.regular,
-              fontSize: 16,
-              paddingHorizontal: space(4),
+              flexDirection: 'row',
+              alignItems: 'flex-end',
+              gap: space(3),
+              paddingHorizontal: space(5),
               paddingTop: space(3),
-              paddingBottom: space(3),
-              backgroundColor: t.surface,
-              borderWidth: 1,
-              borderColor: t.line,
-              borderRadius: radius.lg,
-            }}
-          />
-          <Pressable
-            onPress={send}
-            disabled={!draft.trim() || thinking}
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 22,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: draft.trim() ? t.ember : t.surfaceHigh,
+              // The composer is pinned to the bottom, so it is what has to clear the floating pill.
+              paddingBottom: TAB_BAR_CLEARANCE,
+              borderTopWidth: 1,
+              borderTopColor: t.lineSoft,
             }}
           >
-            <Text variant="label" style={{ color: draft.trim() ? t.onEmber : t.textFaint }}>
-              {'↑'}
-            </Text>
-          </Pressable>
-        </View>
+            <TextInput
+              value={draft}
+              onChangeText={setDraft}
+              placeholder="Message Snitch"
+              placeholderTextColor={t.textFaint}
+              selectionColor={t.ember}
+              multiline
+              style={{
+                flex: 1,
+                maxHeight: 120,
+                minHeight: 44,
+                color: t.text,
+                fontFamily: font.regular,
+                fontSize: 16,
+                paddingHorizontal: space(4),
+                paddingTop: space(3),
+                paddingBottom: space(3),
+                backgroundColor: t.surface,
+                borderWidth: 1,
+                borderColor: t.line,
+                borderRadius: radius.lg,
+              }}
+            />
+            <Pressable
+              onPress={send}
+              disabled={!draft.trim() || thinking}
+              accessibilityRole="button"
+              accessibilityLabel="Send"
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: draft.trim() ? t.ink : t.surfaceHigh,
+              }}
+            >
+              <Text variant="label" style={{ color: draft.trim() ? t.onInk : t.textFaint }}>
+                {'↑'}
+              </Text>
+            </Pressable>
+          </View>
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
