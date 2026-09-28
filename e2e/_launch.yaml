@@ -1,0 +1,15 @@
+# Relaunch into the signed-in app and wait for it to settle (the dev client loads the bundle a
+# second time just after launch).
+appId: com.ammanchuhan.snitchdog
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Profile"
+    timeout: 60000
+- extendedWaitUntil:
+    visible: "never-shown"
+    timeout: 6000
+    optional: true
+- extendedWaitUntil:
+    visible: "Profile"
+    timeout: 30000

@@ -1,0 +1,49 @@
+# Flow B: build the plan with Snitch from the Home banner, and the banner clears.
+appId: com.ammanchuhan.snitchdog
+---
+- runFlow: _launch.yaml
+- tapOn: "Start"
+- extendedWaitUntil:
+    visible: ".*How many workouts a week.*"
+    timeout: 15000
+# Workouts a week
+- tapOn: "4"
+- assertVisible: ".*Which 4 days.*"
+# Days: the button stays off until exactly four are picked
+- tapOn: "Monday"
+- tapOn: "Wednesday"
+- tapOn: "Friday"
+- assertVisible: "Pick 1 more"
+- tapOn: "Saturday"
+- tapOn: "These days"
+# Time: keep 6 pm
+- tapOn: "By 6pm"
+# Where: search for a place
+- extendedWaitUntil:
+    visible: ".*Where do you work out.*"
+    timeout: 5000
+- tapOn: "Search a gym or address"
+- inputText: "1 Infinite Loop, Cupertino"
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: ".*inside the circle for 30 minutes.*"
+    timeout: 20000
+- takeScreenshot: gym
+- tapOn: "This is my gym"
+# Steps
+- extendedWaitUntil:
+    visible: ".*daily step goal.*"
+    timeout: 5000
+- tapOn: "8,000"
+# The plan card
+- assertVisible: ".*4 workouts: Mon, Wed, Fri, Sat at 1 Infinite Loop, Cupertino by 6pm · 8,000 steps a day.*"
+- takeScreenshot: plan-card
+- tapOn: "Confirm"
+- extendedWaitUntil:
+    visible: ".*Plan set\\..*"
+    timeout: 15000
+# The composer is back once the plan exists
+- assertVisible: "Message Snitch"
+- tapOn: "Home"
+- assertNotVisible: ".*No plan yet.*"
+- assertVisible: ".*Nobody is watching yet.*"
