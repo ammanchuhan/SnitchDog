@@ -1,92 +1,120 @@
-import { accountFor, unauthorized } from '@/lib/auth';
-import { type PlanRow, sql } from '@/lib/db';
-import { serialisePlan } from '@/lib/serialise';
+import { randomBytes } from 'node:crypto';
+
+import { type Gym, type PlanRow, type RoutineSlot, sql } from '@/lib/db';
+import { bad, caller, callerWithPlan, planResponse, plausibleWeight, readJson } from '@/lib/http';
 
 export const dynamic = 'force-dynamic';
 
-/** The signed-in account's plan, without needing to know its id.
- *
- *  This is what makes an account worth having: sign in on a new phone, or after signing out,
- *  and there is something to come back to. Without it the app can only ever find a plan it
- *  already had on the device, and signing in drops you into onboarding as if you were new. */
+const token = () => randomBytes(12).toString('base64url');
+const GENDERS = ['woman', 'man', 'non_binary', 'prefer_not'];
+const STYLES = ['gentle', 'balanced', 'tough'];
+
+/** The signed-in account's plan. 404 means they haven't finished sign-up. */
 export async function GET(req: Request) {
-  const account = await accountFor(req);
-  if (!account) return unauthorized();
-
-  const rows = (await sql`
-    select * from plans where account_id = ${account.id} order by created_at limit 1
-  `) as PlanRow[];
-  if (!rows.length) return new Response('no plan', { status: 404 });
-
-  return Response.json(await serialisePlan(rows[0]));
+  const c = await callerWithPlan(req);
+  if (c instanceof Response) return c;
+  return planResponse(c.plan);
 }
 
-/** The app pushes the whole plan on every change. The server keeps its own columns — who has
- *  been told, who is linked, how far a follow-up has gone — and never lets the client
- *  overwrite them. The caller must own the plan: an id alone is not authorization. */
-export async function PUT(req: Request) {
-  const account = await accountFor(req);
-  if (!account) return unauthorized();
+/** Finishing sign-up creates the plan and one invite per witness (SIGNUP-5). The witnesses'
+ *  names stay on the phone until they accept (WIT-8), so only the count comes up. */
+export async function POST(req: Request) {
+  const c = await caller(req);
+  if (c instanceof Response) return c;
+  if (c.plan) return bad('This account already has a plan.', 409);
 
-  const p = await req.json();
-  if (!p?.id || !p?.witness?.inviteToken || !p?.goal) {
-    return new Response('bad plan', { status: 400 });
+  const b = await readJson(req);
+  const unit = b.unit === 'kg' ? 'kg' : 'lb';
+  const heightCm = typeof b.heightCm === 'number' && b.heightCm >= 90 && b.heightCm <= 250 ? b.heightCm : null;
+  const age = Number.isInteger(b.age) && b.age >= 18 && b.age <= 100 ? b.age : null;
+  const witnesses = Number(b.witnesses);
+
+  if (typeof b.ownerName !== 'string' || !b.ownerName.trim()) return bad('A first name is needed.');
+  if (!age) return bad('SnitchDog is for adults, 18 and over.');
+  if (!heightCm) return bad('That height doesn’t look right.');
+  if (!plausibleWeight(b.start, unit, heightCm) || !plausibleWeight(b.target, unit, heightCm)) {
+    return bad('That weight doesn’t look right.');
   }
+  if (!(witnesses >= 1 && witnesses <= 3)) return bad('Name one to three witnesses.');
+  if (typeof b.timezone !== 'string' || !b.timezone) return bad('Missing timezone.');
 
-  // An existing plan belonging to someone else is not ours to overwrite. A plan with no
-  // account_id predates accounts; there are none in production, but claiming one silently
-  // would be the wrong default, so it is refused too.
-  const owner = (await sql`select account_id from plans where id = ${p.id}`) as {
-    account_id: string | null;
-  }[];
-  if (owner.length && owner[0].account_id !== account.id) {
-    return new Response('forbidden', { status: 403 });
-  }
-
+  const id = token().slice(0, 12);
   await sql`
     insert into plans
-      (id, account_id, owner_name, timezone, created_at, unit, start_value, target_value,
-       wake_hour, per_week, routine, witness_name, witness_token)
+      (id, account_id, owner_name, timezone, unit, start_value, target_value, per_week,
+       height_cm, height_unit, age, gender)
     values
-      (${p.id}, ${account.id}, ${p.ownerName ?? ''}, ${p.timezone}, ${p.createdAt}, ${p.goal.unit},
-       ${p.goal.start}, ${p.goal.target}, ${p.goal.wakeHour}, ${p.goal.perWeek},
-       ${JSON.stringify(p.routine ?? [])}, ${p.witness.name}, ${p.witness.inviteToken})
-    on conflict (id) do update
-      set owner_name   = excluded.owner_name,
-          timezone     = excluded.timezone,
-          unit         = excluded.unit,
-          start_value  = excluded.start_value,
-          target_value = excluded.target_value,
-          wake_hour    = excluded.wake_hour,
-          per_week     = excluded.per_week,
-          routine      = excluded.routine,
-          witness_name = excluded.witness_name,
-          -- A new invite token means a new witness: the old one stops being watched.
-          witness_token   = excluded.witness_token,
-          witness_chat_id = case when plans.witness_token = excluded.witness_token
-                                 then plans.witness_chat_id else null end,
-          witness_linked_at = case when plans.witness_token = excluded.witness_token
-                                   then plans.witness_linked_at else null end
+      (${id}, ${c.account.id}, ${b.ownerName.trim().slice(0, 40)}, ${b.timezone}, ${unit},
+       ${b.start}, ${b.target}, 3, ${heightCm}, ${b.heightUnit === 'cm' ? 'cm' : 'ft'}, ${age},
+       ${GENDERS.includes(b.gender) ? b.gender : null})
   `;
+  for (let i = 0; i < witnesses; i += 1) {
+    await sql`insert into witnesses (id, plan_id, token) values (${token()}, ${id}, ${token()})`;
+  }
+  const plan = (await sql`select * from plans where id = ${id}`)[0] as PlanRow;
+  return planResponse(plan);
+}
 
-  for (const w of p.weighIns ?? []) {
+const validSlot = (s: any): s is RoutineSlot =>
+  s &&
+  typeof s.id === 'string' &&
+  typeof s.label === 'string' &&
+  Array.isArray(s.days) &&
+  s.days.length > 0 &&
+  s.days.every((d: unknown) => Number.isInteger(d) && (d as number) >= 0 && (d as number) <= 6) &&
+  Number.isInteger(s.hour) &&
+  s.hour >= 5 &&
+  s.hour <= 23;
+
+const validGym = (g: any): g is Gym =>
+  g &&
+  typeof g.name === 'string' &&
+  Math.abs(g.lat) <= 90 &&
+  Math.abs(g.lng) <= 180 &&
+  typeof g.radius === 'number' &&
+  g.radius >= 50 &&
+  g.radius <= 500;
+
+/** Edits from Profile › Your plan and Snitch's style, and confirming the plan Snitch proposed.
+ *  The weekly floor and the 4 am push aren't editable (PROF-2). */
+export async function PATCH(req: Request) {
+  const c = await callerWithPlan(req);
+  if (c instanceof Response) return c;
+  const p = c.plan;
+  const b = await readJson(req);
+
+  if (b.heightCm !== undefined) {
+    if (!(typeof b.heightCm === 'number' && b.heightCm >= 90 && b.heightCm <= 250)) return bad('That height doesn’t look right.');
+    await sql`update plans set height_cm = ${b.heightCm}, height_unit = ${b.heightUnit === 'cm' ? 'cm' : 'ft'} where id = ${p.id}`;
+    p.height_cm = String(b.heightCm);
+  }
+  if (b.target !== undefined) {
+    if (!plausibleWeight(b.target, p.unit, p.height_cm ? Number(p.height_cm) : null)) return bad('That weight doesn’t look right.');
+    await sql`update plans set target_value = ${b.target} where id = ${p.id}`;
+  }
+  if (b.style !== undefined) {
+    if (!STYLES.includes(b.style)) return bad('Unknown style.');
+    await sql`update plans set style = ${b.style} where id = ${p.id}`;
+  }
+  if (b.timezone !== undefined && typeof b.timezone === 'string') {
+    await sql`update plans set timezone = ${b.timezone} where id = ${p.id}`;
+  }
+
+  // The plan itself: a whole new routine, gym and steps goal at once, as Snitch's card proposes it.
+  if (b.routine !== undefined || b.gym !== undefined || b.stepsGoal !== undefined) {
+    const routine = b.routine ?? p.routine;
+    const gym = b.gym ?? p.gym;
+    const stepsGoal = b.stepsGoal ?? p.steps_goal;
+    if (!Array.isArray(routine) || routine.length > 7 || !routine.every(validSlot)) return bad('That workout schedule doesn’t work.');
+    if (routine.length && !validGym(gym)) return bad('Every workout needs a place to happen.');
+    if (stepsGoal !== null && !(Number.isInteger(stepsGoal) && stepsGoal >= 1000 && stepsGoal <= 40000)) return bad('That step goal doesn’t look right.');
     await sql`
-      insert into weigh_ins (plan_id, date, value, logged_at, proof)
-      values (${p.id}, ${w.date}, ${w.value}, ${w.loggedAt ?? new Date().toISOString()}, ${w.proof ?? null})
-      on conflict (plan_id, date) do update
-        set value = excluded.value, logged_at = excluded.logged_at,
-            proof = coalesce(excluded.proof, weigh_ins.proof)
+      update plans
+         set routine = ${JSON.stringify(routine)}, gym = ${gym ? JSON.stringify(gym) : null},
+             steps_goal = ${stepsGoal}, plan_confirmed_at = coalesce(plan_confirmed_at, now())
+       where id = ${p.id}
     `;
   }
 
-  for (const s of p.sessions ?? []) {
-    await sql`
-      insert into sessions (plan_id, date, slot_id, status, answered_at)
-      values (${p.id}, ${s.date}, ${s.slotId}, ${s.status}, ${s.answeredAt ?? null})
-      on conflict (plan_id, date, slot_id) do update
-        set status = excluded.status, answered_at = excluded.answered_at
-    `;
-  }
-
-  return Response.json({ ok: true });
+  return planResponse((await sql`select * from plans where id = ${p.id}`)[0] as PlanRow);
 }
