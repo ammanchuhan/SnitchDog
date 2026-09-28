@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Keyboard, View } from 'react-native';
 
 import { Button } from '../src/components/Button';
 import { Field } from '../src/components/Field';
@@ -25,6 +25,8 @@ export default function Reset() {
   const [error, setError] = useState<string | null>(null);
 
   const run = async (work: () => Promise<void>) => {
+    // Out of the way, so an error below the fields isn't hidden behind the keyboard.
+    Keyboard.dismiss();
     setBusy(true);
     setError(null);
     try {
