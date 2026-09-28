@@ -20,9 +20,9 @@ appId: com.ammanchuhan.snitchdog
     id: "target"
 - eraseText: 10
 - inputText: "100"
-- extendedWaitUntil:
-    visible: ".*healthy weight starts around.*"
-    timeout: 5000
+- scrollUntilVisible:
+    element: ".*healthy weight starts around.*"
+    visibilityPercentage: 50
 # (Saving a target was checked by hand: automated typing into this number field adds stray
 # digits.) Leaving the screen discards the edit.
 - tapOn: "Back"
