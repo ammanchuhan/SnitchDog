@@ -7,6 +7,8 @@ import { Field } from '../../src/components/Field';
 import { ListGroup, ListRow } from '../../src/components/List';
 import { Text } from '../../src/components/Text';
 import { ApiError, changePassword } from '../../src/lib/api';
+import { deleteMirrorPhotos } from '../../src/lib/mirror';
+import { unregisterPush } from '../../src/lib/push';
 import { deleteAccount, signOut } from '../../src/lib/session';
 import { usePlan } from '../../src/lib/store';
 import { space, useTheme } from '../../src/theme';
@@ -25,7 +27,9 @@ export default function Account() {
   const name = plan.ownerName;
 
   const leave = async (work: () => Promise<unknown>) => {
+    await unregisterPush();
     await work();
+    deleteMirrorPhotos(); // MIR-6: the warning said so
     await clear();
     router.replace('/auth');
   };
@@ -41,7 +45,7 @@ export default function Account() {
   const confirmDelete = () =>
     Alert.alert(
       'Delete your account?',
-      `Every witness will be told: “${name} has quit the promise they asked you to witness.” If you’ve reached your goal, they’re told you made it instead. Then everything is erased from our server and this phone.`,
+      `Every witness will be told: “${name} has quit the promise they asked you to witness.” If you’ve reached your goal, they’re told you made it instead. Then everything is erased from our server and this phone, mirror photos included.`,
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Delete', style: 'destructive', onPress: () => leave(deleteAccount) },

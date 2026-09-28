@@ -18,6 +18,8 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+// Defines the background geofence task: it must exist before iOS wakes the app for it.
+import '../src/lib/gym';
 import { PlanProvider } from '../src/lib/store';
 import { font, useTheme } from '../src/theme';
 
@@ -32,6 +34,7 @@ const DRILL_DOWNS: [string, string][] = [
   ['profile/legal', 'Privacy, terms and support'],
   ['profile/account', 'Account and data'],
   ['history', 'Every weigh-in'],
+  ['photos', 'Progress photos'],
   ['reset', ''],
 ];
 
@@ -80,6 +83,7 @@ export default function RootLayout() {
             <Stack.Screen name="signup" options={{ gestureEnabled: false, animation: 'fade' }} />
             {/* Tasks, not places (NAV-3): they slide up and dismiss. */}
             <Stack.Screen name="log" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+            <Stack.Screen name="mirror" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
             {DRILL_DOWNS.map(([name, title]) => (
               <Stack.Screen key={name} name={name} options={{ headerShown: true, title }} />
             ))}

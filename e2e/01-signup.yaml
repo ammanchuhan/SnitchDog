@@ -162,7 +162,14 @@ appId: com.ammanchuhan.snitchdog
 - inputText: "Jordan"
 - tapOn: "Finish"
 
-# Home with both setup banners (HOME-2)
+# Home with both setup banners (HOME-2). iOS asks about notifications once there's a plan.
+- extendedWaitUntil:
+    visible: "Allow"
+    timeout: 15000
+    optional: true
+- tapOn:
+    text: "Allow"
+    optional: true
 - extendedWaitUntil:
     visible: ".*Nobody is watching yet: 0 of 2 witnesses have accepted.*"
     timeout: 20000
