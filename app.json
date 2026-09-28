@@ -59,6 +59,20 @@
         }
       ],
       "./plugins/withSceneLifecycle",
+      "expo-notifications",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": false,
+          "savePhotosPermission": "Only if you turn it on: SnitchDog saves your mirror photo to Photos too, so it survives a new phone."
+        }
+      ],
+      [
+        "./modules/health-steps/app.plugin.js",
+        {
+          "usage": "SnitchDog reads your daily step count from Apple Health to track your step goal. It only reads steps, and only the daily total leaves your phone."
+        }
+      ],
       "expo-maps"
     ],
     "experiments": {
