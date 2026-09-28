@@ -1,0 +1,53 @@
+# Flow C: log a weigh-in with the phone reading the scale (LOG-2..4, Q20).
+# On the simulator the photo library stands in for the camera: one of its sample photos has no
+# scale in it, and e2e/scale.jpg (added by run.sh) shows 209.4.
+appId: com.ammanchuhan.snitchdog
+---
+- runFlow: _launch.yaml
+- tapOn: "Home"
+- tapOn: "Log weigh-in"
+
+# A photo with no number: three failed reads, then typing is offered.
+- tapOn: "Take a photo of the scale"
+- tapOn: "Photo, March 30, 2018.*"
+- extendedWaitUntil:
+    visible: ".*I can.t read that.*"
+    timeout: 20000
+- assertNotVisible: "Type it instead"
+- repeat:
+    times: 2
+    commands:
+      - tapOn: "Retake"
+      - tapOn: "Photo, March 30, 2018.*"
+      - extendedWaitUntil:
+          visible: ".*I can.t read that.*"
+          timeout: 20000
+- tapOn: "Type it instead"
+- assertVisible: ".*unverified in your history.*"
+- inputText: "20"
+- extendedWaitUntil:
+    visible: ".*doesn.t look right.*"
+    timeout: 5000
+# Leave without saving: nothing is logged.
+- tapOn: "Close"
+- assertVisible: "Log weigh-in"
+
+# The scale: read on the phone, confirmed, saved (the photo is deleted).
+- tapOn: "Log weigh-in"
+- tapOn: "Take a photo of the scale"
+- tapOn: "Photo, September 27.*"
+- extendedWaitUntil:
+    visible: "209.4 lb"
+    timeout: 20000
+- assertVisible: "Right?"
+- takeScreenshot: read
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Logged."
+    timeout: 15000
+- assertVisible: ".*doesn.t count until a witness accepts.*"
+- assertVisible: "The photo is deleted. Only the number is kept."
+- tapOn: "Done"
+- assertVisible: ".*WEIGHED IN AT.*"
+- assertNotVisible: ".*UNVERIFIED.*"
+- assertVisible: "209.4 lb"
