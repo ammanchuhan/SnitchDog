@@ -2,7 +2,8 @@ import { timingSafeEqual } from 'node:crypto';
 
 import { findByEmail, hashPassword, issueToken, MIN_PASSWORD, resetCodeHash } from '@/lib/auth';
 import { sql } from '@/lib/db';
-import { readJson } from '@/lib/http';
+import { readJson, open } from '@/lib/http';
+import { LIMITS } from '@/lib/ratelimit';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +12,7 @@ const WRONG = Response.json({ error: 'That code isn’t right, or it has expired
 
 /** Finish a password reset: the code, then a new password. Every other device is signed out,
  *  and this one is signed in (AUTH-8). */
-export async function POST(req: Request) {
+export const POST = open(async (req) => {
   const { email, code, password } = await readJson(req);
   if (typeof email !== 'string' || typeof code !== 'string') return WRONG;
 
@@ -37,4 +38,4 @@ export async function POST(req: Request) {
   await sql`delete from password_resets where account_id = ${account.id}`;
   await sql`delete from auth_tokens where account_id = ${account.id}`;
   return Response.json({ token: await issueToken(account.id), accountId: account.id });
-}
+}, LIMITS.resetConfirm);

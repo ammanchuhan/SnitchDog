@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 
 import { type Gym, type PlanRow, type RoutineSlot, sql } from '@/lib/db';
-import { bad, caller, callerWithPlan, planResponse, plausibleWeight, readJson } from '@/lib/http';
+import { authed, bad, planResponse, plausibleWeight, readJson, signedIn } from '@/lib/http';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,17 +10,13 @@ const GENDERS = ['woman', 'man', 'non_binary', 'prefer_not'];
 const STYLES = ['gentle', 'balanced', 'tough'];
 
 /** The signed-in account's plan. 404 means they haven't finished sign-up. */
-export async function GET(req: Request) {
-  const c = await callerWithPlan(req);
-  if (c instanceof Response) return c;
+export const GET = authed(async (req, c) => {
   return planResponse(c.plan);
-}
+});
 
 /** Finishing sign-up creates the plan and one invite per witness (SIGNUP-5). The witnesses'
  *  names stay on the phone until they accept (WIT-8), so only the count comes up. */
-export async function POST(req: Request) {
-  const c = await caller(req);
-  if (c instanceof Response) return c;
+export const POST = signedIn(async (req, c) => {
   if (c.plan) return bad('This account already has a plan.', 409);
 
   const b = await readJson(req);
@@ -53,7 +49,7 @@ export async function POST(req: Request) {
   }
   const plan = (await sql`select * from plans where id = ${id}`)[0] as PlanRow;
   return planResponse(plan);
-}
+});
 
 const DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const hourLabel = (h: number) => `${h % 12 || 12} ${h < 12 ? 'am' : 'pm'}`;
@@ -90,9 +86,7 @@ const validGym = (g: any): g is Gym =>
 
 /** Edits from Profile › Your plan and Snitch's style, and confirming the plan Snitch proposed.
  *  The weekly floor and the 4 am push aren't editable (PROF-2). */
-export async function PATCH(req: Request) {
-  const c = await callerWithPlan(req);
-  if (c instanceof Response) return c;
+export const PATCH = authed(async (req, c) => {
   const p = c.plan;
   const b = await readJson(req);
 
@@ -135,4 +129,4 @@ export async function PATCH(req: Request) {
   }
 
   return planResponse((await sql`select * from plans where id = ${p.id}`)[0] as PlanRow);
-}
+});

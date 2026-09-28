@@ -1,14 +1,39 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
 
-/** Built on first use, not at import time: the build runs without a DATABASE_URL and a
- *  connection made at module load would fail it. */
-let client: NeonQueryFunction<false, false> | null = null;
-const connect = () => (client ??= neon(process.env.DATABASE_URL!));
+/** Who a query runs as. Row-level security (scripts/schema.sql) reads this on every query:
+ *  an account sees only its own rows, 'system' (the ladder, the bot, sign-in lookups) sees all,
+ *  and no context sees nothing, so a forgotten context fails closed. */
+type Context = { accountId?: string; system?: boolean };
+const context = new AsyncLocalStorage<Context>();
 
+/** Runs `fn` with every query scoped to one account. */
+export const asAccount = <T>(accountId: string, fn: () => Promise<T>) => context.run({ accountId }, fn);
+/** Runs `fn` with system access: only for work that isn't on behalf of a signed-in account. */
+export const asSystem = <T>(fn: () => Promise<T>) => context.run({ system: true }, fn);
+
+/** Built on first use, not at import time: the build runs without a database URL and a
+ *  connection made at module load would fail it. The server runs as the least-privilege app
+ *  role (APP_DATABASE_URL); the owner's DATABASE_URL is only for migrations and local fallback. */
+let client: NeonQueryFunction<false, false> | null = null;
+const connect = () => (client ??= neon(process.env.APP_DATABASE_URL ?? process.env.DATABASE_URL!));
+
+/** Tagged-template SQL, as the Neon driver's, with the context set on the same transaction:
+ *  one round trip, and `set_config(..., true)` can't leak past it. */
 export const sql: NeonQueryFunction<false, false> = new Proxy(
   (() => {}) as unknown as NeonQueryFunction<false, false>,
   {
-    apply: (_t, _this, args: any[]) => (connect() as any)(...args),
+    apply: (_t, _this, args: any[]) => {
+      const db = connect();
+      const ctx = context.getStore() ?? {};
+      const [strings, ...values] = args;
+      return db
+        .transaction([
+          db`select set_config('app.account_id', ${ctx.accountId ?? ''}, true), set_config('app.system', ${ctx.system ? 'on' : 'off'}, true)`,
+          db(strings, ...values),
+        ])
+        .then((results) => results[1]);
+    },
     get: (_t, prop) => (connect() as any)[prop],
   },
 );

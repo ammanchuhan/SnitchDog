@@ -1,10 +1,12 @@
 import { createAccount, findByEmail, hashPassword, issueToken, MIN_PASSWORD, normaliseEmail } from '@/lib/auth';
+import { open } from '@/lib/http';
+import { LIMITS } from '@/lib/ratelimit';
 
 export const dynamic = 'force-dynamic';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export async function POST(req: Request) {
+export const POST = open(async (req) => {
   const { email, password } = await req.json().catch(() => ({}));
 
   if (typeof email !== 'string' || !EMAIL.test(email.trim())) {
@@ -27,4 +29,4 @@ export async function POST(req: Request) {
     passwordHash: await hashPassword(password),
   });
   return Response.json({ token: await issueToken(account.id), accountId: account.id });
-}
+}, LIMITS.signup);

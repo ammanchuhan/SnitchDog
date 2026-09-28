@@ -9,7 +9,7 @@
  */
 import { createHash, randomBytes, randomUUID, scrypt, timingSafeEqual } from 'node:crypto';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
-import { sql } from './db';
+import { asSystem, sql } from './db';
 
 export type Account = {
   id: string;
@@ -64,20 +64,34 @@ export const bearer = (req: Request): string | null => {
   return scheme?.toLowerCase() === 'bearer' && value ? value : null;
 };
 
-/** The caller, or null. Routes translate null into a 401 themselves. */
+/** Sessions end after this long unused. */
+const IDLE_DAYS = 90;
+
+/** The caller, or null. Looked up as system: there's no account to scope to until this finds
+ *  one. Routes translate null into a 401. */
 export async function accountFor(req: Request): Promise<Account | null> {
   const token = bearer(req);
-  if (!token) return null;
+  if (!token || token.length > 200) return null;
 
-  const rows = (await sql`
-    select a.id, a.email, a.apple_user_id
-      from auth_tokens t join accounts a on a.id = t.account_id
-     where t.token_hash = ${digest(token)}
-  `) as Account[];
-  if (!rows.length) return null;
+  return asSystem(async () => {
+    const rows = (await sql`
+      select a.id, a.email, a.apple_user_id
+        from auth_tokens t join accounts a on a.id = t.account_id
+       where t.token_hash = ${digest(token)}
+         and t.last_seen_at > now() - make_interval(days => ${IDLE_DAYS})
+    `) as Account[];
+    if (!rows.length) return null;
+    await sql`update auth_tokens set last_seen_at = now() where token_hash = ${digest(token)}`;
+    return rows[0];
+  });
+}
 
-  await sql`update auth_tokens set last_seen_at = now() where token_hash = ${digest(token)}`;
-  return rows[0];
+/** Compares two secrets in constant time. */
+export function sameSecret(given: string | null, expected: string | undefined): boolean {
+  if (!given || !expected) return false;
+  const a = createHash('sha256').update(given).digest();
+  const b = createHash('sha256').update(expected).digest();
+  return timingSafeEqual(a, b);
 }
 
 export const unauthorized = () => new Response('unauthorized', { status: 401 });

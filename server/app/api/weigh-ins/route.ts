@@ -1,6 +1,7 @@
 import { weekLine } from '@/lib/coach';
 import { type PlanRow, getWeighIns, getWitnesses, sql } from '@/lib/db';
-import { bad, callerWithPlan, isDate, readJson } from '@/lib/http';
+import { bad, authed, isDate, readJson } from '@/lib/http';
+import { LIMITS } from '@/lib/ratelimit';
 import { countsFrom, weekMath } from '@/lib/rules';
 import { serialisePlan } from '@/lib/serialise';
 import { localNow, shiftDate } from '@/lib/time';
@@ -13,9 +14,7 @@ export const dynamic = 'force-dynamic';
  *
  *  Answers with the plan and a line about the week (Flow C): how many are still needed, and
  *  whether there's any room left to skip. */
-export async function POST(req: Request) {
-  const c = await callerWithPlan(req);
-  if (c instanceof Response) return c;
+export const POST = authed(async (req, c) => {
   const p: PlanRow = c.plan;
   const b = await readJson(req);
 
@@ -40,4 +39,4 @@ export async function POST(req: Request) {
   const [weighIns, witnesses] = await Promise.all([getWeighIns(p.id), getWitnesses(p.id)]);
   const week = weekMath(p, countsFrom(p, witnesses), weighIns, today);
   return Response.json({ plan: await serialisePlan(p), line: weekLine(week) });
-}
+}, { limit: LIMITS.weighIn });

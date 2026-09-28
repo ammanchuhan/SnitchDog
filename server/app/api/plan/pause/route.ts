@@ -1,5 +1,5 @@
 import { type PlanRow, sql } from '@/lib/db';
-import { bad, callerWithPlan, planResponse, readJson } from '@/lib/http';
+import { bad, authed, planResponse, readJson } from '@/lib/http';
 import { tellWitnesses } from '@/lib/notify';
 import { MAX_PAUSE_DAYS } from '@/lib/rules';
 import { localNow, shiftDate } from '@/lib/time';
@@ -11,9 +11,7 @@ const REASONS = ['Illness', 'Injury', 'Travel', 'Family'];
 
 /** Pause the plan (Q4): up to 14 days, starting today. Nothing is judged inside it, and every
  *  witness is told, with the reason, because under P4 you can't step away quietly. */
-export async function POST(req: Request) {
-  const c = await callerWithPlan(req);
-  if (c instanceof Response) return c;
+export const POST = authed(async (req, c) => {
   const p = c.plan;
   const b = await readJson(req);
   const days = Number(b.days);
@@ -29,12 +27,10 @@ export async function POST(req: Request) {
   `;
   await tellWitnesses(p, '', { kind: 'witness_paused', days, reason: b.reason });
   return planResponse((await sql`select * from plans where id = ${p.id}`)[0] as PlanRow);
-}
+});
 
 /** Back early: the pause ends yesterday, so today counts again. */
-export async function DELETE(req: Request) {
-  const c = await callerWithPlan(req);
-  if (c instanceof Response) return c;
+export const DELETE = authed(async (req, c) => {
   const p = c.plan;
   const { date } = localNow(p.timezone);
   if (p.paused_from && p.paused_from >= date) {
@@ -43,4 +39,4 @@ export async function DELETE(req: Request) {
     await sql`update plans set paused_until = ${shiftDate(date, -1)} where id = ${p.id}`;
   }
   return planResponse((await sql`select * from plans where id = ${p.id}`)[0] as PlanRow);
-}
+});

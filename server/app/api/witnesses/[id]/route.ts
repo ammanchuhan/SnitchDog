@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 
 import { type WitnessRow, getWeighIns, getWitnesses, isWatching, sql } from '@/lib/db';
-import { bad, callerWithPlan, planResponse, readJson } from '@/lib/http';
+import { authed, bad, type CallerWithPlan, planResponse, readJson } from '@/lib/http';
 import { tellWitnesses } from '@/lib/notify';
 import { reachedTarget } from '@/lib/rules';
 import { send } from '@/lib/telegram';
@@ -10,11 +10,9 @@ import { localNow } from '@/lib/time';
 
 export const dynamic = 'force-dynamic';
 
-type Ctx = { params: Promise<{ id: string }> };
+type Ctx = { params: Promise<Record<string, string>> };
 
-async function find(req: Request, ctx: Ctx) {
-  const c = await callerWithPlan(req);
-  if (c instanceof Response) return c;
+async function find(c: CallerWithPlan, ctx: Ctx) {
   const { id } = await ctx.params;
   const witnesses = await getWitnesses(c.plan.id);
   const w = witnesses.find((x) => x.id === id && !x.removed_at);
@@ -24,8 +22,8 @@ async function find(req: Request, ctx: Ctx) {
 
 /** The owner's name for a witness, sent once they've accepted (WIT-8); or a fresh invite link
  *  for one whose invite expired (TG-5). */
-export async function PATCH(req: Request, ctx: Ctx) {
-  const f = await find(req, ctx);
+export const PATCH = authed(async (req, c, ctx) => {
+  const f = await find(c, ctx);
   if (f instanceof Response) return f;
   const b = await readJson(req);
 
@@ -41,13 +39,13 @@ export async function PATCH(req: Request, ctx: Ctx) {
     `;
   }
   return planResponse(f.plan);
-}
+});
 
 /** Remove a witness (WIT-6, P4). An invite nobody accepted is just withdrawn. Removing someone
  *  who's watching tells every watching witness, the removed one included, unless the owner has
  *  reached their goal, in which case the removed witness is told that instead. */
-export async function DELETE(req: Request, ctx: Ctx) {
-  const f = await find(req, ctx);
+export const DELETE = authed(async (_req, c, ctx) => {
+  const f = await find(c, ctx);
   if (f instanceof Response) return f;
   const { plan, w, witnesses } = f;
 
@@ -61,4 +59,4 @@ export async function DELETE(req: Request, ctx: Ctx) {
   }
   await sql`update witnesses set removed_at = now() where id = ${w.id}`;
   return planResponse(plan);
-}
+});
