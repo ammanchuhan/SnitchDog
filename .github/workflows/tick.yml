@@ -1,0 +1,25 @@
+# Runs Snitch's ladder every 15 minutes (DATA-4): the 4 am weigh-in ask in every timezone,
+# workout reminders, the Monday verdict. Vercel's Hobby plan only allows a daily cron, which
+# stays in server/vercel.json as a backstop; running the tick twice does nothing the second time.
+#
+# Needs two repository secrets: TICK_URL (https://snitchdog.com/api/tick) and CRON_SECRET (the
+# same value as the server's).
+name: tick
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Run the ladder
+        env:
+          TICK_URL: ${{ secrets.TICK_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$TICK_URL" ]; then echo "TICK_URL is not set"; exit 0; fi
+          curl -fsS --max-time 90 -H "Authorization: Bearer $CRON_SECRET" "$TICK_URL"
