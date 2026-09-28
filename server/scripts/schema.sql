@@ -225,3 +225,11 @@ select p.id || '-w1', p.id, p.witness_token, p.witness_name, p.witness_chat_id, 
  where p.witness_token is not null
    and not exists (select 1 from witnesses w where w.plan_id = p.id)
 on conflict do nothing;
+
+-- Messages sent to witnesses per plan per local day, for the daily cap (TG-4).
+create table if not exists witness_sends (
+  plan_id text not null references plans (id) on delete cascade,
+  day     text not null,
+  sent    int  not null default 0,
+  primary key (plan_id, day)
+);
