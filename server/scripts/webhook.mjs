@@ -26,7 +26,7 @@ if (arg === 'delete') {
     await call('setWebhook', {
       url: `${arg.replace(/\/$/, '')}/api/telegram`,
       secret_token: secret || undefined,
-      allowed_updates: ['message', 'callback_query'],
+      allowed_updates: ['message'],
     }),
   );
 } else {

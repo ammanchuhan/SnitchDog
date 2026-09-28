@@ -81,6 +81,22 @@ In production, `/api/tick` runs the ladder. `.github/workflows/tick.yml` calls i
 minutes (set the `TICK_URL` and `CRON_SECRET` repository secrets); Vercel's daily cron is a
 backstop. Set `ESCALATION_MINUTES=1` to shorten the wait before a morning chase when rehearsing.
 
+## Security
+
+- **Row-level security on every table.** The server connects as `snitchdog_app`, a role that can
+  read and write rows but can't change the schema or bypass RLS. Each query sets its context on
+  the same transaction (`server/lib/db.ts`): a signed-in account sees only its own rows, `system`
+  (the ladder, the bot, sign-in lookups) sees all, and no context sees nothing. Migrations run as
+  the owner. Create or rotate the app role with `node --env-file=.env.local scripts/create-app-role.mjs`
+  and set its `APP_DATABASE_URL` on Vercel as Sensitive.
+- **Rate limits** in Postgres (`server/lib/ratelimit.ts`), per IP for sign-in, sign-up and reset,
+  per email address for login and reset, per account for the API and the coach, per chat for the bot.
+- **Sessions** are random tokens stored as sha256, ending after 90 days unused; passwords are
+  scrypt. The bot's webhook and the cron require their secrets.
+- **Headers:** HSTS, a strict CSP for the few HTML pages, no framing, no CORS on the API.
+- `node scripts/smoke.mjs <url>` checks all of this against a running server, including that one
+  account can't reach another's data.
+
 ## License
 
 MIT

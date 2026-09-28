@@ -28,7 +28,7 @@ appId: com.ammanchuhan.snitchdog
 - tapOn:
     id: "send"
 - extendedWaitUntil:
-    visible: "Snitch: (?s).*(granted|pass|covered|won.t hear).*"
+    visible: "Snitch: (?s).*(granted|pass|covered|won.t hear|[Dd]one|better).*"
     timeout: 60000
 - takeScreenshot: pass
 - swipe:

@@ -1,7 +1,7 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Platform, Pressable, View } from 'react-native';
+import { Keyboard, Platform, Pressable, View } from 'react-native';
 
 import { Button } from '../src/components/Button';
 import { Field } from '../src/components/Field';
@@ -40,6 +40,8 @@ export default function Auth() {
     email.trim().length > 3 && password.length >= (creating ? MIN_PASSWORD : 1) && !busy;
 
   const run = async (work: () => Promise<void>) => {
+    // Out of the way, so an error below the fields isn't hidden behind the keyboard.
+    Keyboard.dismiss();
     setBusy(true);
     setError(null);
     try {
