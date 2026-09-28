@@ -41,6 +41,12 @@ export async function verifyPassword(password: string, stored: string | null): P
 
 const digest = (token: string) => createHash('sha256').update(token).digest('hex');
 
+/** Long, not clever. Composition rules push people towards predictable passwords. */
+export const MIN_PASSWORD = 10;
+
+/** Reset codes are six digits, so they're stored salted with the account id. */
+export const resetCodeHash = (accountId: string, code: string) => digest(`${accountId}:${code}`);
+
 /** Mints a session. The plaintext is returned once and never stored. */
 export async function issueToken(accountId: string): Promise<string> {
   const token = randomBytes(32).toString('hex');
