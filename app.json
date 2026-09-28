@@ -45,12 +45,21 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "SnitchDog takes a photo of the scale each time you weigh in, so the number is backed by something real.",
+          "cameraPermission": "SnitchDog reads the number off a photo of your scale, then deletes the photo. Your weekly mirror photo stays on this phone.",
           "photosPermission": false,
           "microphonePermission": false
         }
       ],
-      "./plugins/withSceneLifecycle"
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "SnitchDog uses your location to find your gym when you set up your plan.",
+          "locationAlwaysAndWhenInUsePermission": "SnitchDog checks whether you're at your gym on workout days, so workouts count without you tapping anything. Only \"arrived\" and \"left\" are worked out, on this phone; your location never leaves it.",
+          "isIosBackgroundLocationEnabled": true
+        }
+      ],
+      "./plugins/withSceneLifecycle",
+      "expo-maps"
     ],
     "experiments": {
       "typedRoutes": true
