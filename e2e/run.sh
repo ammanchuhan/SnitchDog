@@ -30,7 +30,8 @@ xcrun simctl location "$DEVICE" set 37.7749,-122.4194
 for flow in $FLOWS; do
   if [ "$flow" = "01-signup.yaml" ]; then
     # The weigh-in flow picks this from the photo library (the simulator's camera takes nothing).
-    xcrun simctl addmedia "$DEVICE" scale.jpg
+    # Once per simulator: every copy pushes the library's sample photos further down.
+    if [ ! -f ".media-$DEVICE" ]; then xcrun simctl addmedia "$DEVICE" scale.jpg && touch ".media-$DEVICE"; fi
     curl -sf "$API/api/auth/signup" -H 'content-type: application/json' \
       -d "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}" >/dev/null
   fi

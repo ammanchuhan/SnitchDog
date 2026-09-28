@@ -9,6 +9,8 @@ appId: com.ammanchuhan.snitchdog
 
 # A photo with no number: three failed reads, then typing is offered.
 - tapOn: "Take a photo of the scale"
+- scrollUntilVisible:
+    element: "Photo, March 30, 2018.*"
 - tapOn: "Photo, March 30, 2018.*"
 - extendedWaitUntil:
     visible: ".*I can.t read that.*"
@@ -18,6 +20,8 @@ appId: com.ammanchuhan.snitchdog
     times: 2
     commands:
       - tapOn: "Retake"
+      - scrollUntilVisible:
+          element: "Photo, March 30, 2018.*"
       - tapOn: "Photo, March 30, 2018.*"
       - extendedWaitUntil:
           visible: ".*I can.t read that.*"
@@ -35,7 +39,9 @@ appId: com.ammanchuhan.snitchdog
 # The scale: read on the phone, confirmed, saved (the photo is deleted).
 - tapOn: "Log weigh-in"
 - tapOn: "Take a photo of the scale"
-- tapOn: "Photo, September 27.*"
+- tapOn:
+    text: "Photo, September.*"
+    index: 0
 - extendedWaitUntil:
     visible: "209.4 lb"
     timeout: 20000
