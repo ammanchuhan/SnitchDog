@@ -1,0 +1,177 @@
+# Create an account and go through the 8-step sign-up, including every refusal.
+# Run through e2e/run.sh, which creates the account.
+appId: com.ammanchuhan.snitchdog
+---
+- launchApp
+- extendedWaitUntil:
+    visible: ".*(Make your account|Hi, I.m Snitch|Welcome back|Profile).*"
+    timeout: 60000
+# The dev client loads the bundle a second time right after launch; let that settle.
+- extendedWaitUntil:
+    visible: "Use a different account"
+    timeout: 8000
+    optional: true
+# Signed in from an earlier run: sign out the way a person would (PROF-9).
+- runFlow:
+    when:
+      visible: "Profile"
+    commands:
+      - openLink: "snitchdog://profile/account"
+      - tapOn: "Sign out"
+      - assertVisible: ".*Your plan keeps running and your witnesses keep watching.*"
+      - tapOn:
+          text: "Sign out"
+          index: 1
+# Signed in from an earlier run without finishing sign-up: leave that account.
+- runFlow:
+    when:
+      visible: "Use a different account"
+    commands:
+      - tapOn: "Use a different account"
+- runFlow:
+    when:
+      visible: "Welcome back"
+    commands:
+      - tapOn: "I need an account"
+- extendedWaitUntil:
+    visible: "Make your account"
+    timeout: 10000
+
+# The account itself is made by run.sh through the API: iOS's new-password sheet is system UI
+# that automation can't drive reliably. This signs in to it, the path a returning person takes.
+- tapOn: "I already have an account"
+- assertVisible: "Welcome back"
+- assertVisible: "Forgot password?"
+- tapOn: "you@example.com"
+- inputText: ${EMAIL}
+- tapOn:
+    id: "password"
+- inputText: "wrong-password"
+- tapOn: "Sign in"
+- extendedWaitUntil:
+    visible: "That email and password do not match."
+    timeout: 10000
+- tapOn:
+    id: "password"
+- eraseText: 20
+- inputText: ${PASSWORD}
+- tapOn: "Sign in"
+# iOS offers to save the password: system UI, so "Not Now" is tapped by position after it
+# appears. Without the dialog this lands on Snitch, which does nothing.
+- extendedWaitUntil:
+    visible: "never-shown"
+    timeout: 4000
+    optional: true
+- tapOn:
+    point: "32%,62%"
+
+# 1 Hello, 2 How it works
+- extendedWaitUntil:
+    visible: ".*Hi, I.m Snitch.*"
+    timeout: 20000
+- tapOn: "Hi, Snitch"
+- assertVisible: ".*Workouts verified by GPS.*"
+- tapOn: "Got it"
+
+# 3 Name
+- extendedWaitUntil:
+    visible: ".*What should I call you.*"
+    timeout: 5000
+- tapOn: "First name"
+- inputText: "Sam"
+- pressKey: Enter
+
+# 4 Age: under 18 is refused kindly
+- extendedWaitUntil:
+    visible: ".*How old are you.*"
+    timeout: 5000
+- tapOn: "Age"
+- inputText: "16"
+- extendedWaitUntil:
+    visible: ".*only for adults.*"
+    timeout: 5000
+- eraseText: 3
+- inputText: "34"
+- extendedWaitUntil:
+    visible: ".*Nice to meet you, Sam.*"
+    timeout: 5000
+- waitForAnimationToEnd
+- tapOn:
+    text: "Continue"
+    retryTapIfNoChange: true
+
+# 5 Body: an impossible weight is caught
+- extendedWaitUntil:
+    visible: ".*gender if you want to share it.*"
+    timeout: 5000
+- tapOn: "5"
+- inputText: "5"
+- waitForAnimationToEnd
+- tapOn: "10"
+- inputText: "10"
+- waitForAnimationToEnd
+- tapOn:
+    id: "weight"
+- inputText: "20"
+- extendedWaitUntil:
+    visible: ".*doesn.t look right.*"
+    timeout: 5000
+- eraseText: 3
+- inputText: "210"
+- tapOn: "Non-binary"
+- assertVisible: ".*ONLY USED TO SHAPE YOUR WORKOUT PLAN.*"
+- takeScreenshot: body
+- waitForAnimationToEnd
+- tapOn:
+    text: "Continue"
+    retryTapIfNoChange: true
+
+# 6 Target: below the healthy floor is refused, then the goal is taken as the goal
+- extendedWaitUntil:
+    visible: ".*Where do you want to get to.*"
+    timeout: 5000
+- inputText: "120"
+- extendedWaitUntil:
+    visible: ".*healthy weight starts around.*"
+    timeout: 5000
+- eraseText: 4
+- inputText: "185"
+- extendedWaitUntil:
+    visible: ".*That.s the goal. I.ll hold you to it.*"
+    timeout: 5000
+- assertNotVisible: ".*first stop.*"
+- takeScreenshot: target
+- waitForAnimationToEnd
+- tapOn:
+    text: "Continue"
+    retryTapIfNoChange: true
+
+# 7 Data
+- extendedWaitUntil:
+    visible: ".*A quick word about your data.*"
+    timeout: 5000
+- tapOn: "Got it"
+
+# 8 Witnesses: one to three
+- extendedWaitUntil:
+    visible: ".*You.ll probably ignore me.*"
+    timeout: 5000
+- tapOn: "First name"
+- inputText: "Alex"
+- tapOn: "+ Add another"
+- inputText: "Jordan"
+- tapOn: "Finish"
+
+# Home with both setup banners (HOME-2). iOS asks about notifications once there's a plan.
+- extendedWaitUntil:
+    visible: "Allow"
+    timeout: 15000
+    optional: true
+- tapOn:
+    text: "Allow"
+    optional: true
+- extendedWaitUntil:
+    visible: ".*Nobody is watching yet: 0 of 2 witnesses have accepted.*"
+    timeout: 20000
+- assertVisible: ".*No plan yet.*"
+- takeScreenshot: home

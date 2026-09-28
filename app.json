@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "Accountable",
-    "slug": "accountable",
+    "name": "SnitchDog",
+    "slug": "snitchdog",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "accountable",
+    "scheme": "snitchdog",
     "userInterfaceStyle": "automatic",
-    "backgroundColor": "#FBFAF8",
+    "backgroundColor": "#FAF7F2",
     "icon": "./assets/icon.png",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.ammanchuhan.accountable",
+      "bundleIdentifier": "com.ammanchuhan.snitchdog",
       "buildNumber": "1",
       "userInterfaceStyle": "automatic",
       "config": {
@@ -21,10 +21,10 @@
       }
     },
     "android": {
-      "package": "com.ammanchuhan.accountable",
+      "package": "com.ammanchuhan.snitchdog",
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundColor": "#0E1013"
+        "backgroundColor": "#FAF7F2"
       }
     },
     "plugins": [
@@ -34,9 +34,9 @@
         "expo-splash-screen",
         {
           "image": "./assets/splash-icon.png",
-          "imageWidth": 180,
+          "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#FBFAF8",
+          "backgroundColor": "#FAF7F2",
           "dark": {
             "backgroundColor": "#121211"
           }
@@ -45,11 +45,35 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Accountable takes a photo of the scale each time you weigh in, so the number is backed by something real.",
+          "cameraPermission": "SnitchDog reads the number off a photo of your scale, then deletes the photo. Your weekly mirror photo stays on this phone.",
           "photosPermission": false,
           "microphonePermission": false
         }
-      ]
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "SnitchDog uses your location to find your gym when you set up your plan.",
+          "locationAlwaysAndWhenInUsePermission": "SnitchDog checks whether you're at your gym on workout days, so workouts count without you tapping anything. Only \"arrived\" and \"left\" are worked out, on this phone; your location never leaves it.",
+          "isIosBackgroundLocationEnabled": true
+        }
+      ],
+      "./plugins/withSceneLifecycle",
+      "expo-notifications",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": false,
+          "savePhotosPermission": "Only if you turn it on: SnitchDog saves your mirror photo to Photos too, so it survives a new phone."
+        }
+      ],
+      [
+        "./modules/health-steps/app.plugin.js",
+        {
+          "usage": "SnitchDog reads your daily step count from Apple Health to track your step goal. It only reads steps, and only the daily total leaves your phone."
+        }
+      ],
+      "expo-maps"
     ],
     "experiments": {
       "typedRoutes": true

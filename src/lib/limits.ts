@@ -24,8 +24,7 @@ const PLAUSIBLE_BMI = [12, 80] as const;
 /** Used only when there's no height to be personal with. */
 const PLAUSIBLE_WEIGHT: Record<Unit, readonly [number, number]> = { lb: [50, 800], kg: [23, 360] };
 
-/** The furthest a target may sit from where someone starts. Past this it's a different plan —
- *  set a new target on arrival instead. */
+/** The furthest a target may sit from where someone starts: a safety limit on the goal. */
 const MAX_LOSS = 0.35;
 const MAX_GAIN = 0.25;
 /** The heaviest target the app will set for someone putting weight on. Strongmen go past it;
@@ -101,14 +100,14 @@ export function checkTarget(start: number, target: number, unit: Unit, height?: 
 
   const change = (target - start) / start;
   if (change < -MAX_LOSS) {
-    return `That’s ${Math.round(-change * 100)}% below where you’re starting. Aim no lower than ${Math.ceil(
+    return `That’s ${Math.round(-change * 100)}% below where you’re starting. The lowest goal I’ll hold you to from here is ${Math.ceil(
       start * (1 - MAX_LOSS),
-    )} ${unit} for now — you can set a new target when you get there.`;
+    )} ${unit}.`;
   }
   if (change > MAX_GAIN) {
-    return `That’s ${Math.round(change * 100)}% above where you’re starting. Aim no higher than ${Math.floor(
+    return `That’s ${Math.round(change * 100)}% above where you’re starting. The highest goal I’ll hold you to from here is ${Math.floor(
       start * (1 + MAX_GAIN),
-    )} ${unit} for now.`;
+    )} ${unit}.`;
   }
   return null;
 }
@@ -125,18 +124,18 @@ export function targetNote(start: number, target: number, unit: Unit, height: He
   const bmi = bmiOf(target, unit, height.cm);
   const gaining = target > start;
   // Jokes are for building up. Someone bringing a high weight down gets a straight answer.
-  if (!gaining) return `For someone ${h}, a healthy weight starts around ${floor}\u00a0${unit}. ${target} is a solid first stop.`;
+  if (!gaining) return `For someone ${h}, a healthy weight starts around ${floor}\u00a0${unit}. ${target} is a goal worth holding you to.`;
   if (bmi >= 31) return `${target}\u00a0${unit} at ${h}. That\u2019s offensive-line territory. The scale won\u2019t know it\u2019s muscle, but the squat rack will.`;
   if (bmi >= 28) return `${target}\u00a0${unit} at ${h}? Somebody\u2019s planning to pick up heavy things. Respect.`;
   if (bmi >= 25) return `Building, then. ${target}\u00a0${unit} at ${h} is a lot of muscle to go and get. Eat, lift, repeat.`;
   return `Putting weight on. Most of it should come from the gym, not the drive-through.`;
 }
 
-/** Ember's reply once a target is set: the joke for someone building up, a plain nod for someone
- *  coming down. The healthy-range floor itself is stated before they answer, not after. */
+/** Snitch's reply once a target is set: the joke for someone building up, a plain nod for someone
+ *  coming down. It's their goal, not a stepping stone, so nothing here calls it a first stop. */
 export function targetReaction(start: number, target: number, unit: Unit, height: Height): string {
   if (target > start) return targetNote(start, target, unit, height);
-  return `${target}\u00a0${unit}. A solid first stop \u2014 get there and we\u2019ll pick the next one.`;
+  return `${target}\u00a0${unit}. That\u2019s the goal. I\u2019ll hold you to it.`;
 }
 
 /** The healthy-range floor, in Ember's words, said while asking for the target. */

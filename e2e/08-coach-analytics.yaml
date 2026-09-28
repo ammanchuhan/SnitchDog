@@ -1,0 +1,55 @@
+# Talking to Snitch (section 8), including asking for a pass, and looking back (section 7).
+appId: com.ammanchuhan.snitchdog
+---
+- runFlow: _launch.yaml
+- tapOn: "Coach"
+- tapOn: "Message Snitch"
+- inputText: "I had the flu all week and couldn't get out of bed. Can I get a pass for this week?"
+# Drag the conversation down to put the keyboard away, then send.
+- swipe:
+    start: "50%,25%"
+    end: "50%,60%"
+- waitForAnimationToEnd
+- tapOn:
+    id: "send"
+- extendedWaitUntil:
+    visible: "You: I had the flu.*"
+    timeout: 10000
+# Snitch may ask which part before granting; answer, and it grants the week's pass.
+- extendedWaitUntil:
+    visible: "Snitch: (?s).*(pass|weigh-in|workout).*"
+    timeout: 60000
+- tapOn: "Message Snitch"
+- inputText: "The weigh-ins. I was in bed with a fever and couldn't stand on the scale."
+- swipe:
+    start: "50%,25%"
+    end: "50%,60%"
+- waitForAnimationToEnd
+- tapOn:
+    id: "send"
+- extendedWaitUntil:
+    visible: "Snitch: (?s).*(granted|pass|covered|won.t hear|[Dd]one|better).*"
+    timeout: 60000
+- takeScreenshot: pass
+- swipe:
+    start: "50%,25%"
+    end: "50%,60%"
+
+- tapOn: "Analytics"
+- assertVisible: "How it’s gone"
+- assertVisible: "THE TREND"
+- scrollUntilVisible:
+    element: "MONTH BY MONTH"
+- scrollUntilVisible:
+    element: "Witnesses were told"
+    visibilityPercentage: 50
+- scrollUntilVisible:
+    element: "Every weigh-in.*"
+    visibilityPercentage: 50
+- tapOn: "Every weigh-in.*"
+- assertVisible: ".*1 morning logged since you started at 210 lb.*"
+- assertVisible: "209.4 lb"
+- tapOn: "Back"
+- scrollUntilVisible:
+    element: "Your witnesses have been told"
+    visibilityPercentage: 50

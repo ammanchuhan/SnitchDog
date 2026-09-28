@@ -7,11 +7,11 @@ import { Text } from './Text';
 
 const MS_PER_CHAR = 22;
 
-/** Ember's speech bubble: a comic-strip balloon with an ink outline, a hard offset shadow and a
- *  tail pointing down at Ember.
+/** Snitch's speech bubble: a comic-strip balloon with an ink outline, a hard offset shadow and a
+ *  tail pointing down at Snitch.
  *
  * Each time what it says changes, the bubble pops in and the words type out, so a new line reads
- * as Ember talking rather than a label changing. The full text is laid out from the first frame
+ * as Snitch talking rather than a label changing. The full text is laid out from the first frame
  * (the untyped part is just invisible), so the bubble never grows or reflows while typing. Tap it
  * to finish the line; with Reduce Motion on, it appears whole. */
 export function SpeechBubble({ lines, style }: { lines: string[]; style?: ViewStyle }) {
@@ -71,7 +71,7 @@ export function SpeechBubble({ lines, style }: { lines: string[]; style?: ViewSt
       <Pressable
         onPress={() => setShown(total)}
         accessibilityRole="text"
-        accessibilityLabel={`Ember: ${lines.join(' ')}`}
+        accessibilityLabel={`Snitch: ${lines.join(' ')}`}
         style={{
           backgroundColor: t.surface,
           borderWidth: 2,
@@ -90,10 +90,12 @@ export function SpeechBubble({ lines, style }: { lines: string[]; style?: ViewSt
           <Text
             key={i}
             style={{
-              fontFamily: i === 0 ? font.bold : font.medium,
-              fontSize: i === 0 ? 21 : 16,
-              lineHeight: i === 0 ? 27 : 23,
-              letterSpacing: i === 0 ? -0.3 : 0,
+              // Snitch's opening line is the character speaking, so it gets the serif; the
+              // explanation under it stays sans, where longer text reads more easily small.
+              fontFamily: i === 0 ? font.serifBold : font.medium,
+              fontSize: i === 0 ? 22 : 16,
+              lineHeight: i === 0 ? 29 : 23,
+              letterSpacing: i === 0 ? -0.1 : 0,
               color: i === 0 ? t.text : t.textDim,
             }}
           >
@@ -101,7 +103,7 @@ export function SpeechBubble({ lines, style }: { lines: string[]; style?: ViewSt
             <Text style={{ color: 'transparent' }}>{line.slice(visible[i])}</Text>
           </Text>
         ))}
-        {/* The tail, pointing down at Ember. The short paper stroke hides the bubble's
+        {/* The tail, pointing down at Snitch. The short paper stroke hides the bubble's
             border where the tail joins it. */}
         <Svg width={36} height={28} viewBox="0 0 40 30" style={{ position: 'absolute', bottom: -24, left: '44%' }}>
           <Path d="M2 0 L10 26 L26 0" fill={t.surface} stroke={t.text} strokeWidth={2.5} strokeLinejoin="round" />
@@ -112,7 +114,7 @@ export function SpeechBubble({ lines, style }: { lines: string[]; style?: ViewSt
   );
 }
 
-/** Keeps a bubble from reacting to every keystroke: Ember answers once you pause. */
+/** Keeps a bubble from reacting to every keystroke: Snitch answers once you pause. */
 export function useSettled<T>(value: T, ms = 600): T {
   const [settled, setSettled] = useState(value);
   useEffect(() => {

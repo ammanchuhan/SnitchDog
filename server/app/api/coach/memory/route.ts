@@ -1,17 +1,16 @@
+import { authed, readJson } from '@/lib/http';
 import { forget, getMemories } from '@/lib/memory';
 
 export const dynamic = 'force-dynamic';
 
-/** What the coach remembers, and the ability to take any of it back. */
-export async function GET(req: Request) {
-  const planId = new URL(req.url).searchParams.get('plan');
-  if (!planId) return new Response('plan required', { status: 400 });
-  return Response.json({ memories: await getMemories(planId) });
-}
+/** What Snitch remembers, and the ability to take any of it back (PROF-5). */
+export const GET = authed(async (req, c) => {
+  return Response.json({ memories: await getMemories(c.plan.id) });
+});
 
-export async function DELETE(req: Request) {
-  const { planId, id } = await req.json();
-  if (!planId || !id) return new Response('bad request', { status: 400 });
-  await forget(planId, id);
+export const DELETE = authed(async (req, c) => {
+  const { id } = await readJson(req);
+  if (!id) return new Response('bad request', { status: 400 });
+  await forget(c.plan.id, String(id));
   return Response.json({ ok: true });
-}
+});

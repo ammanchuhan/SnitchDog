@@ -18,7 +18,9 @@ export function Button({ label, onPress, variant = 'primary', disabled, loading,
   const t = useTheme();
 
   const skin = {
-    primary: { backgroundColor: t.ember, borderColor: t.ember, tone: 'onEmber' as const },
+    // Ink, not ember: §theme says the interface only raises its voice in one colour, so
+    // ember is kept for pressure and an ordinary primary action is the brand's ink.
+    primary: { backgroundColor: t.ink, borderColor: t.ink, tone: 'onInk' as const },
     secondary: { backgroundColor: 'transparent', borderColor: t.line, tone: 'default' as const },
     ghost: { backgroundColor: 'transparent', borderColor: 'transparent', tone: 'dim' as const },
   }[variant];

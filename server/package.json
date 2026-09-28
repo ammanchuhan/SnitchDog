@@ -1,17 +1,19 @@
 {
-  "name": "accountable-server",
+  "name": "snitchdog-server",
   "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev --port 3111",
     "build": "next build",
     "start": "next start",
-    "migrate": "node --env-file=.env.local scripts/migrate.mjs"
+    "migrate": "node --env-file=.env.local scripts/migrate.mjs",
+    "test": "TZ=America/New_York node --test --experimental-strip-types --import ./test/register.mjs 'lib/*.test.ts'"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
     "@neondatabase/serverless": "^1.0.2",
-    "next": "^15.5.4",
+    "jose": "^6.2.12",
+    "next": "^15.5.26",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
@@ -19,5 +21,8 @@
     "@types/node": "^22.10.0",
     "@types/react": "^19.2.0",
     "typescript": "^5.7.0"
+  },
+  "overrides": {
+    "postcss": "^8.5.23"
   }
 }

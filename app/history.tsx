@@ -1,19 +1,17 @@
-import { Image, Pressable, View } from 'react-native';
+import { View } from 'react-native';
 
 import { Screen } from '../src/components/Screen';
 import { Text } from '../src/components/Text';
-import { useDismiss } from '../src/lib/nav';
-import { photoUri } from '../src/lib/photos';
 import { usePlan } from '../src/lib/store';
 import { space, useTheme } from '../src/theme';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-/** Every morning you logged, newest first. The chart shows the shape; this shows the record. */
+/** Every weigh-in (HIST-1, HIST-2): newest first, grouped by month, read only. The chart shows
+ *  the shape; this shows the record. */
 export default function History() {
   const { plan } = usePlan();
-  const dismiss = useDismiss();
   const t = useTheme();
   if (!plan) return null;
 
@@ -32,22 +30,12 @@ export default function History() {
     months.set(key, [...(months.get(key) ?? []), r]);
   }
 
-  const labelFor = (slotId: string) => plan.routine.find((s) => s.id === slotId)?.label ?? 'Session';
+  const labelFor = (slotId: string) => plan.routine.find((s) => s.id === slotId)?.label ?? 'Workout';
+  const STATUS = { done: 'done', missed: 'missed', excused: 'excused' } as const;
 
   return (
-    <Screen>
-      <View style={{ flexDirection: 'row', paddingTop: space(4) }}>
-        <Pressable onPress={dismiss} hitSlop={12}>
-          <Text variant="label" tone="faint">
-            Back
-          </Text>
-        </Pressable>
-      </View>
-
-      <Text variant="display" style={{ paddingTop: space(6), paddingBottom: space(2) }}>
-        Every weigh-in
-      </Text>
-      <Text variant="body" tone="dim" numeric style={{ paddingBottom: space(6) }}>
+    <Screen edges={['bottom']}>
+      <Text variant="body" tone="dim" numeric style={{ paddingTop: space(4), paddingBottom: space(2) }}>
         {rows.length} {rows.length === 1 ? 'morning' : 'mornings'} logged since you started at {start} {unit}.
       </Text>
 
@@ -63,7 +51,7 @@ export default function History() {
             {MONTHS[Number(month.slice(5, 7)) - 1].toUpperCase()} {month.slice(0, 4)}
           </Text>
           {entries.map((r) => {
-            const sessions = plan.sessions.filter((s) => s.date === r.date);
+            const sessions = plan.workouts.filter((s) => s.date === r.date);
             const good = r.delta !== undefined && Math.sign(r.delta) === toward;
             return (
               <View
@@ -76,30 +64,6 @@ export default function History() {
                   borderBottomColor: t.lineSoft,
                 }}
               >
-                {r.photo ? (
-                  <Image
-                    source={{ uri: photoUri(r.photo) }}
-                    style={{ width: 36, height: 48, borderRadius: 6, marginRight: space(3), backgroundColor: t.surfaceHigh }}
-                  />
-                ) : (
-                  // No photo: logged before photos were required, or sent to the bot.
-                  <View
-                    style={{
-                      width: 36,
-                      height: 48,
-                      borderRadius: 6,
-                      marginRight: space(3),
-                      borderWidth: 1,
-                      borderColor: t.lineSoft,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Text variant="micro" tone="faint">
-                      {r.proof === 'telegram' ? 'TG' : '\u2014'}
-                    </Text>
-                  </View>
-                )}
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text variant="bodyStrong" numeric>
                     {DAYS[new Date(`${r.date}T12:00:00`).getDay()]}, {MONTHS[Number(r.date.slice(5, 7)) - 1].slice(0, 3)}{' '}
@@ -108,7 +72,7 @@ export default function History() {
                   {sessions.length > 0 && (
                     <Text variant="small" tone="faint">
                       {sessions
-                        .map((s) => `${labelFor(s.slotId)} ${s.status === 'done' ? 'done' : 'missed'}`)
+                        .map((s) => `${labelFor(s.slotId)} ${STATUS[s.status]}`)
                         .join(' · ')}
                     </Text>
                   )}
@@ -117,6 +81,11 @@ export default function History() {
                   <Text variant="bodyStrong" numeric>
                     {r.value.toFixed(1)} {unit}
                   </Text>
+                  {!r.verified && (
+                    <Text variant="micro" tone="faint">
+                      UNVERIFIED
+                    </Text>
+                  )}
                   {r.delta !== undefined && Math.abs(r.delta) >= 0.05 && (
                     <Text variant="small" numeric tone={good ? 'good' : 'faint'}>
                       {r.delta > 0 ? '+' : ''}

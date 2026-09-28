@@ -1,16 +1,20 @@
+import { sameSecret } from '@/lib/auth';
 import { advance } from '@/lib/ladder';
+import { sweepRateLimits } from '@/lib/ratelimit';
 import { PlanRow, sql } from '@/lib/db';
+import { open } from '@/lib/http';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-/** Vercel cron hits this every 15 minutes. It is the only thing that has to keep running. */
-export async function GET(req: Request) {
-  const secret = process.env.CRON_SECRET;
-  if (secret && req.headers.get('authorization') !== `Bearer ${secret}`) {
-    return new Response('nope', { status: 401 });
-  }
+/** Runs every 15 minutes (the GitHub Action; Vercel's daily cron is a backstop). It is the only
+ *  thing that has to keep running. */
+export const GET = open(async (req) => {
+  // Vercel's cron and the GitHub Action send the secret. Required, never optional.
+  const given = req.headers.get('authorization')?.replace(/^Bearer /, '') ?? null;
+  if (!sameSecret(given, process.env.CRON_SECRET)) return new Response('nope', { status: 401 });
 
+  await sweepRateLimits();
   const plans = (await sql`select * from plans`) as PlanRow[];
   const acted: Record<string, string[]> = {};
   for (const plan of plans) {
@@ -23,4 +27,4 @@ export async function GET(req: Request) {
     }
   }
   return Response.json({ checked: plans.length, acted });
-}
+});

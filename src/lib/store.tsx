@@ -1,29 +1,40 @@
-/** Local-first state for the plan.
+/** The plan, as the server last said it was.
  *
- * Writes land on device immediately and sync to the server in the background, so logging a
- * weight never waits on a network. The server owns the fields the app can't know on its own —
- * whether the witness is linked, and what they have been told — so its copy of those wins.
+ * Cloud-first (P5): every change is a server call, and the plan it answers with replaces the one
+ * here. The phone keeps a copy so the app opens straight to the last synced state, offline or not
+ * (NFR-2).
+ *
+ * One thing lives only on the phone: the names the owner gave witnesses who haven't accepted yet
+ * (WIT-8). They're merged into the plan here, and sent to the server once that witness accepts.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
-import { fetchPlan, pushPlan } from './api';
-import { deletePhoto } from './photos';
-import { Plan, Session, SessionStatus, toDate, WeighIn } from './types';
+import * as api from './api';
+import { dropSession, loadToken } from './session';
+import type { NewPlan, Plan } from './types';
 
-const KEY = 'accountable.plan.v2';
+const PLAN_KEY = 'snitchdog.plan.v3';
+const NAMES_KEY = 'snitchdog.witness-names.v1';
+/** Weigh-ins taken offline, sent on the next refresh (NFR-2). The server takes one a day late. */
+const QUEUE_KEY = 'snitchdog.weigh-in-queue.v1';
+
+type Queued = { value: number; verified: boolean; date: string; loggedAt: string };
+
+type Names = Record<string, string>;
 
 type Ctx = {
   ready: boolean;
   plan: Plan | null;
-  start: (p: Plan) => Promise<void>;
-  /** Today's number. Replaces an earlier reading on the same day rather than adding one. */
-  /** Every weigh-in carries its photo; the date is only for tests and backfills. */
-  logWeight: (value: number, photo: string, date?: string) => Promise<void>;
-  answerSession: (slotId: string, status: SessionStatus, date?: string) => Promise<void>;
-  /** Editing the plan: goal, wake time, routine, witness. */
-  update: (patch: Partial<Plan>) => Promise<void>;
-  refresh: () => Promise<void>;
+  /** Ask the server again. Null means this account has no plan yet. */
+  refresh: () => Promise<Plan | null>;
+  /** Finish sign-up. */
+  create: (p: NewPlan) => Promise<Plan>;
+  /** Run a server call that answers with the plan, and keep what it returns. */
+  run: (call: () => Promise<Plan>) => Promise<Plan>;
+  logWeight: (value: number, verified: boolean) => Promise<string>;
+  /** Name a witness the owner just added (kept on the phone until they accept). */
+  nameWitness: (id: string, name: string) => Promise<void>;
   clear: () => Promise<void>;
 };
 
@@ -32,106 +43,160 @@ const PlanContext = createContext<Ctx | null>(null);
 export function PlanProvider({ children }: { children: React.ReactNode }) {
   const [plan, setPlan] = useState<Plan | null>(null);
   const [ready, setReady] = useState(false);
+  const names = useRef<Names>({});
 
-  const persist = useCallback(async (next: Plan | null) => {
-    setPlan(next);
-    if (next) {
-      await AsyncStorage.setItem(KEY, JSON.stringify(next));
-      pushPlan(next); // fire and forget
-    } else {
-      await AsyncStorage.removeItem(KEY);
+  /** The server's plan with the phone's names filled in, and any name the server is now
+   *  allowed to have (the witness accepted) sent up. */
+  const keep = useCallback(async (remote: Plan | null) => {
+    if (!remote) {
+      setPlan(null);
+      await AsyncStorage.removeItem(PLAN_KEY);
+      return null;
     }
+    const merged: Plan = {
+      ...remote,
+      witnesses: remote.witnesses.map((w) => ({ ...w, name: w.name ?? names.current[w.id] })),
+    };
+    for (const w of remote.witnesses) {
+      const local = names.current[w.id];
+      if (w.status === 'watching' && !w.name && local) api.nameWitness(w.id, local).catch(() => {});
+    }
+    setPlan(merged);
+    await AsyncStorage.setItem(PLAN_KEY, JSON.stringify(merged));
+    return merged;
   }, []);
 
-  useEffect(() => {
-    (async () => {
-      const raw = await AsyncStorage.getItem(KEY);
-      if (raw) setPlan(JSON.parse(raw) as Plan);
-      setReady(true);
-    })();
+  const saveNames = async (next: Names) => {
+    names.current = next;
+    await AsyncStorage.setItem(NAMES_KEY, JSON.stringify(next));
+  };
+
+  /** Signed out on the server: forget everything on this phone. The tabs notice the plan is gone
+   *  and send the person back to the account screen. */
+  const signedOut = useCallback(async () => {
+    await dropSession();
+    await AsyncStorage.removeItem(QUEUE_KEY);
+    await saveNames({});
+    await keep(null);
+  }, [keep]);
+
+  /** Sends weigh-ins that were logged offline. Stops at the first that still can't go. */
+  const flushQueue = useCallback(async () => {
+    const queued = JSON.parse((await AsyncStorage.getItem(QUEUE_KEY)) ?? '[]') as Queued[];
+    const left: Queued[] = [];
+    for (const q of queued) {
+      if (left.length) {
+        left.push(q);
+        continue;
+      }
+      try {
+        await api.logWeighIn(q.value, q.verified, q.date);
+      } catch (err) {
+        // Offline still: keep it. Refused (too late, or impossible): drop it.
+        if (err instanceof api.ApiError && err.status === 0) left.push(q);
+      }
+    }
+    if (left.length) await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(left));
+    else await AsyncStorage.removeItem(QUEUE_KEY);
   }, []);
 
   const refresh = useCallback(async () => {
-    if (!plan) return;
-    const remote = await fetchPlan(plan.id);
-    if (!remote) return;
-    const told = new Map(remote.sessions.map((s) => [`${s.date}:${s.slotId}`, s.escalatedAt]));
-    const merged: Plan = {
-      ...plan,
-      witness: { ...plan.witness, linked: remote.witness.linked, linkedAt: remote.witness.linkedAt },
-      ownerChatId: remote.ownerChatId ?? plan.ownerChatId,
-      escalatedWeeks: remote.escalatedWeeks ?? plan.escalatedWeeks,
-      // The server may have answered on our behalf (a Telegram button) or recorded a miss.
-      weighIns: mergeWeighIns(plan.weighIns, remote.weighIns),
-      sessions: mergeSessions(plan.sessions, remote.sessions, told),
-    };
-    setPlan(merged);
-    await AsyncStorage.setItem(KEY, JSON.stringify(merged));
-  }, [plan]);
+    if (!(await loadToken())) return keep(null);
+    try {
+      await flushQueue();
+      return await keep(await api.fetchPlan());
+    } catch (err) {
+      if (err instanceof api.ApiError && err.status === 401) return signedOut().then(() => null);
+      // Offline: keep showing the last synced plan.
+      return plan;
+    }
+  }, [keep, plan, signedOut, flushQueue]);
 
-  const start = useCallback((p: Plan) => persist(p), [persist]);
+  useEffect(() => {
+    (async () => {
+      const [raw, rawNames] = await Promise.all([AsyncStorage.getItem(PLAN_KEY), AsyncStorage.getItem(NAMES_KEY)]);
+      names.current = rawNames ? (JSON.parse(rawNames) as Names) : {};
+      if (raw) setPlan(JSON.parse(raw) as Plan);
+      setReady(true);
+      // Then catch up with the server in the background (LAUNCH-3).
+      if (await loadToken()) {
+        api.fetchPlan()
+          .then(keep)
+          .catch((err) => {
+            if (err instanceof api.ApiError && err.status === 401) signedOut();
+          });
+      }
+    })();
+    // Runs once; keep is stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const run = useCallback(
+    async (call: () => Promise<Plan>) => {
+      try {
+        return (await keep(await call()))!;
+      } catch (err) {
+        if (err instanceof api.ApiError && err.status === 401) await signedOut();
+        throw err;
+      }
+    },
+    [keep, signedOut],
+  );
+
+  const create = useCallback(
+    async (p: NewPlan) => {
+      const created = await api.createPlan(p);
+      // The server made one witness per name, in order; the names stay here.
+      const next = { ...names.current };
+      created.witnesses.forEach((w, i) => {
+        if (p.witnessNames[i]) next[w.id] = p.witnessNames[i];
+      });
+      await saveNames(next);
+      return (await keep(created))!;
+    },
+    [keep],
+  );
 
   const logWeight = useCallback(
-    async (value: number, photo: string, date = toDate()) => {
-      if (!plan) return;
-      const replaced = plan.weighIns.find((w) => w.date === date);
-      if (replaced?.photo && replaced.photo !== photo) deletePhoto(replaced.photo);
-      const weighIns = [
-        ...plan.weighIns.filter((w) => w.date !== date),
-        { date, value, loggedAt: new Date().toISOString(), photo, proof: 'camera' as const },
-      ].sort((a, b) => a.date.localeCompare(b.date));
-      await persist({ ...plan, weighIns });
+    async (value: number, verified: boolean) => {
+      try {
+        const { plan: next, line } = await api.logWeighIn(value, verified);
+        await keep(next);
+        return line;
+      } catch (err) {
+        if (!(err instanceof api.ApiError) || err.status !== 0 || !plan) throw err;
+        // No connection (NFR-2): keep it on the phone, show it now, send it later.
+        const entry: Queued = { value: Math.round(value * 10) / 10, verified, date: plan.today, loggedAt: new Date().toISOString() };
+        const queued = JSON.parse((await AsyncStorage.getItem(QUEUE_KEY)) ?? '[]') as Queued[];
+        await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify([...queued.filter((q) => q.date !== entry.date), entry]));
+        const weighIns = [...plan.weighIns.filter((w) => w.date !== entry.date), { date: entry.date, value: entry.value, loggedAt: entry.loggedAt, verified }];
+        setPlan({ ...plan, weighIns: weighIns.sort((a, b) => a.date.localeCompare(b.date)) });
+        return 'Saved on this phone. It’ll send as soon as you’re back online.';
+      }
     },
-    [plan, persist],
+    [keep, plan],
   );
 
-  const answerSession = useCallback<Ctx['answerSession']>(
-    async (slotId, status, date = toDate()) => {
-      if (!plan) return;
-      const previous = plan.sessions.find((s) => s.date === date && s.slotId === slotId);
-      const session: Session = {
-        date,
-        slotId,
-        status,
-        answeredAt: new Date().toISOString(),
-        escalatedAt: previous?.escalatedAt,
-      };
-      const sessions = [
-        ...plan.sessions.filter((s) => !(s.date === date && s.slotId === slotId)),
-        session,
-      ].sort((a, b) => a.date.localeCompare(b.date));
-      await persist({ ...plan, sessions });
+  const nameWitness = useCallback(
+    async (id: string, name: string) => {
+      await saveNames({ ...names.current, [id]: name });
+      setPlan((p) => (p ? { ...p, witnesses: p.witnesses.map((w) => (w.id === id ? { ...w, name } : w)) } : p));
     },
-    [plan, persist],
+    [],
   );
 
-  const update = useCallback(
-    async (patch: Partial<Plan>) => {
-      if (!plan) return;
-      await persist({ ...plan, ...patch });
-    },
-    [plan, persist],
-  );
-
-  const clear = useCallback(() => persist(null), [persist]);
+  const clear = useCallback(async () => {
+    await AsyncStorage.removeItem(QUEUE_KEY);
+    await saveNames({});
+    await keep(null);
+  }, [keep]);
 
   const value = useMemo(
-    () => ({ ready, plan, start, logWeight, answerSession, update, refresh, clear }),
-    [ready, plan, start, logWeight, answerSession, update, refresh, clear],
+    () => ({ ready, plan, refresh, create, run, logWeight, nameWitness, clear }),
+    [ready, plan, refresh, create, run, logWeight, nameWitness, clear],
   );
 
   return <PlanContext.Provider value={value}>{children}</PlanContext.Provider>;
-}
-
-/** Local answers win; escalation timestamps come from the server. */
-function mergeSessions(local: Session[], remote: Session[], told: Map<string, string | undefined>) {
-  const out = new Map(local.map((s) => [`${s.date}:${s.slotId}`, s]));
-  for (const r of remote) {
-    const key = `${r.date}:${r.slotId}`;
-    const mine = out.get(key);
-    out.set(key, mine ? { ...mine, escalatedAt: told.get(key) ?? mine.escalatedAt } : r);
-  }
-  return [...out.values()].sort((a, b) => a.date.localeCompare(b.date));
 }
 
 export function usePlan() {
@@ -139,15 +204,3 @@ export function usePlan() {
   if (!ctx) throw new Error('usePlan must be used inside PlanProvider');
   return ctx;
 }
-
-/** Union by day. The server knows about weigh-ins sent to the bot; only the phone has the photos
- *  taken in the app, so a local entry keeps its photo even when the server has the same day. */
-function mergeWeighIns(local: WeighIn[], remote: WeighIn[]): WeighIn[] {
-  const byDate = new Map(remote.map((w) => [w.date, w]));
-  for (const w of local) {
-    const r = byDate.get(w.date);
-    byDate.set(w.date, r && r.loggedAt > w.loggedAt && r.proof === 'telegram' ? r : w);
-  }
-  return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
-}
-

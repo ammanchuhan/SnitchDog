@@ -8,7 +8,7 @@
  * This is the in-app half. The hard stop is on Anthropic's side: prepaid credits with auto-reload
  * off, so the account cannot spend more than it holds whatever this code does.
  */
-import { sql } from './db';
+import { asSystem, sql } from './db';
 
 export const MODEL = 'claude-haiku-4-5';
 
@@ -20,11 +20,12 @@ export async function allow(planId: string): Promise<boolean> {
   if (!process.env.ANTHROPIC_API_KEY) return false;
   const day = new Date().toISOString().slice(0, 10); // UTC — a spending day, not the owner's day
   try {
-    const rows = (await sql`
+    // As system: the usage table is shared across plans, not any one account's.
+    const rows = (await asSystem(() => sql`
       insert into ai_usage (day, scope, calls) values (${day}, ${planId}, 1), (${day}, '*', 1)
       on conflict (day, scope) do update set calls = ai_usage.calls + 1
       returning scope, calls
-    `) as { scope: string; calls: number }[];
+    `)) as { scope: string; calls: number }[];
     const mine = rows.find((r) => r.scope === planId)?.calls ?? Infinity;
     const all = rows.find((r) => r.scope === '*')?.calls ?? Infinity;
     return mine <= PER_PLAN && all <= TOTAL;

@@ -1,0 +1,17 @@
+# Jordan accepts, then sends /stop (run.sh plays Jordan): the owner is told, and Jordan shows as
+# stepped back (WIT-7).
+appId: com.ammanchuhan.snitchdog
+---
+- runFlow: _launch.yaml
+- tapOn: "Coach"
+- extendedWaitUntil:
+    visible: ".*Jordan stepped back."
+    timeout: 15000
+- tapOn: "Profile"
+- tapOn: "Witnesses.*"
+- assertVisible: "Jordan, Stepped back"
+- tapOn: "Jordan.*"
+- assertVisible: ".*sent /stop and won.t hear from Snitch again.*"
+- assertNotVisible: "Remove this witness"
+- tapOn: "Back"
+- tapOn: "Back"

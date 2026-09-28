@@ -24,7 +24,7 @@ ap.add_argument('--width', type=int, default=240)
 ap.add_argument('--strip-paper', action='store_true',
                 help='Also remove the torn paper-white patch the model sheet was generated with')
 ap.add_argument('--match', help='Name of the base image whose crop box this frame must reuse')
-ap.add_argument('--out', default=os.path.join(os.path.dirname(__file__), '..', 'assets', 'illustrations'))
+ap.add_argument('--out', default=os.path.join(os.path.dirname(__file__), '..', 'assets', 'snitch'))
 a = ap.parse_args()
 
 img = Image.open(os.path.expanduser(a.src)).convert('RGB')

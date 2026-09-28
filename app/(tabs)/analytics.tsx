@@ -1,9 +1,11 @@
 import { useRouter } from 'expo-router';
-import { Pressable, useWindowDimensions, View } from 'react-native';
+import { useWindowDimensions, View } from 'react-native';
 
 import { Figure, Section } from '../../src/components/Figure';
+import { ListGroup, ListRow } from '../../src/components/List';
 import { MonthCalendar } from '../../src/components/MonthCalendar';
 import { Screen } from '../../src/components/Screen';
+import { Snitch } from '../../src/components/Snitch';
 import { Text } from '../../src/components/Text';
 import { WeightChart } from '../../src/components/WeightChart';
 import { usePlan } from '../../src/lib/store';
@@ -12,8 +14,8 @@ import {
   escalationCount,
   rollingAverage,
   shiftDate,
-  toDate,
   weekHistory,
+  weeksTold,
 } from '../../src/lib/types';
 import { radius, space, useTheme } from '../../src/theme';
 
@@ -25,7 +27,7 @@ export default function Analytics() {
   const { width } = useWindowDimensions();
 
   if (!plan) return null;
-  const today = toDate();
+  const today = plan.today;
   const { goal } = plan;
   const average = currentAverage(plan);
   const fourWeeksAgo = rollingAverage(plan, shiftDate(today, -28));
@@ -36,20 +38,22 @@ export default function Analytics() {
   const rate =
     average !== undefined && fourWeeksAgo !== undefined ? (average - fourWeeksAgo) / 4 : undefined;
 
-  const towardTarget = rate !== undefined && Math.sign(rate) === Math.sign(goal.target - goal.start);
-  const weeksLeft =
-    towardTarget && rate && average !== undefined
-      ? Math.abs((goal.target - average) / rate)
-      : undefined;
+  // Snitch reacts to the history (ANA-7): a trophy flex after a clean run, a sly look when a
+  // witness heard about the latest week.
+  const lastClosed = history.weeks.filter((w) => !w.open).slice(-1)[0];
+  const mood = lastClosed && weeksTold(plan).includes(lastClosed.start) ? 'sly' : history.current >= 4 ? 'proud' : 'calm';
 
   return (
-    <Screen edges={['top']} style={{ paddingBottom: space(16) }}>
-      <Text variant="micro" tone="faint" style={{ paddingTop: space(6) }}>
-        ANALYTICS
-      </Text>
-      <Text variant="display" style={{ paddingTop: space(2), paddingBottom: space(8) }}>
-        How it&rsquo;s gone
-      </Text>
+    <Screen edges={['top']}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', paddingTop: space(6), paddingBottom: space(8) }}>
+        <View style={{ flex: 1, gap: space(2) }}>
+          <Text variant="micro" tone="faint">
+            ANALYTICS
+          </Text>
+          <Text variant="display">How it&rsquo;s gone</Text>
+        </View>
+        <Snitch mood={mood} height={96} />
+      </View>
 
       <Section title="THE TREND" first>
         <WeightChart plan={plan} width={width - space(12)} />
@@ -59,11 +63,7 @@ export default function Analytics() {
             value={rate === undefined ? '—' : `${rate > 0 ? '+' : ''}${rate.toFixed(1)}`}
             note={rate === undefined ? 'four weeks of data needed' : `${goal.unit} a week`}
           />
-          <Figure
-            label="AT THIS RATE"
-            value={weeksLeft === undefined || weeksLeft > 260 ? '—' : `${Math.ceil(weeksLeft)}`}
-            note={weeksLeft === undefined || weeksLeft > 260 ? 'not moving yet' : 'weeks to target'}
-          />
+          <Figure label="WEIGH-INS" value={`${plan.weighIns.length}`} note="since you started" />
         </View>
       </Section>
 
@@ -72,30 +72,12 @@ export default function Analytics() {
         <MonthCalendar plan={plan} />
       </Section>
 
-      <Pressable
-        onPress={() => router.push('/history')}
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginTop: space(6),
-          borderRadius: radius.md,
-          borderWidth: 1,
-          borderColor: t.line,
-          backgroundColor: t.surface,
-          padding: space(4),
-        }}
-      >
-        <View style={{ gap: space(1) }}>
-          <Text variant="bodyStrong">Every weigh-in</Text>
-          <Text variant="small" tone="dim" numeric>
-            {plan.weighIns.length} mornings, day by day
-          </Text>
-        </View>
-        <Text variant="heading" tone="faint">
-          ›
-        </Text>
-      </Pressable>
+      <View style={{ paddingTop: space(6) }}>
+        <ListGroup>
+          <ListRow label="Every weigh-in" value={`${plan.weighIns.length}`} onPress={() => router.push('/history')} />
+          <ListRow label="Progress photos" onPress={() => router.push('/photos')} />
+        </ListGroup>
+      </View>
 
       <Section title="WEEKS">
         <Text variant="body" tone="dim">
@@ -143,7 +125,7 @@ export default function Analytics() {
         >
           <View style={{ flex: 1, paddingRight: space(4) }}>
             <Text variant="bodyStrong" tone={called > 0 ? 'ember' : 'default'}>
-              {plan.witness.name} has been called
+              Your witnesses have been told
             </Text>
             <Text variant="small" tone="dim">
               Every other number here is yours. This one is the deal.

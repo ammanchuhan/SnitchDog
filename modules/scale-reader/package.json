@@ -1,0 +1,8 @@
+{
+  "name": "scale-reader",
+  "version": "1.0.0",
+  "description": "Reads the text off a photo of a scale with Apple's Vision framework, on the phone.",
+  "main": "index.ts",
+  "license": "MIT",
+  "private": true
+}

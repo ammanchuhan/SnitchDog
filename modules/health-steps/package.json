@@ -1,0 +1,8 @@
+{
+  "name": "health-steps",
+  "version": "1.0.0",
+  "description": "Reads daily step totals from Apple Health.",
+  "main": "index.ts",
+  "license": "MIT",
+  "private": true
+}

@@ -2,6 +2,8 @@ import { Pressable, View } from 'react-native';
 
 import type { Weekday } from '../lib/types';
 import { WEEKDAY_LETTER } from '../lib/types';
+
+const NAME = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 import { space, useTheme } from '../theme';
 import { Text } from './Text';
 
@@ -18,6 +20,7 @@ export function DayPicker({ value, onChange }: { value: Weekday[]; onChange: (da
           <Pressable
             key={day}
             accessibilityRole="button"
+            accessibilityLabel={NAME[day]}
             accessibilityState={{ selected: active }}
             onPress={() =>
               onChange(active ? value.filter((d) => d !== day) : [...value, day].sort())

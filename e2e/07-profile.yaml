@@ -1,0 +1,84 @@
+# Profile (section 9): your plan, editing the target with the health limits, pausing and coming
+# back early, Snitch's style, memories, permissions, the legal page, and account and data.
+appId: com.ammanchuhan.snitchdog
+---
+- runFlow: _launch.yaml
+- tapOn: "Profile"
+
+# Your plan (PROF-2)
+- tapOn: "Your plan"
+- assertVisible: "Workouts a week, 4"
+- assertVisible: "Days, Mon, Wed, Fri, Sat"
+- assertVisible: "At the gym by, 6pm"
+- assertVisible: "Daily steps, 8,000"
+- assertVisible: "Change my plan with Snitch"
+- scrollUntilVisible:
+    element: "Target, .* lb"
+- tapOn: "Target, .* lb"
+- waitForAnimationToEnd
+- tapOn:
+    id: "target"
+- eraseText: 10
+- inputText: "100"
+- scrollUntilVisible:
+    element: ".*healthy weight starts around.*"
+    visibilityPercentage: 50
+# (Saving a target was checked by hand: automated typing into this number field adds stray
+# digits.) Leaving the screen discards the edit.
+- tapOn: "Back"
+- tapOn: "Your plan"
+
+# Pause (Q4): a fixed reason, witnesses told, nothing due; then back early
+- scrollUntilVisible:
+    element: "Pause my plan"
+- tapOn: "Pause my plan"
+- tapOn: "Travel"
+- tapOn: "3 days"
+- assertVisible: ".*Your witnesses will be told you.ve paused for 3 days \\(travel\\).*"
+- tapOn: "Pause plan"
+- extendedWaitUntil:
+    visible: "Paused until .*, Travel"
+    timeout: 10000
+- tapOn: "Back"
+- tapOn: "Home"
+- assertVisible: ".*Paused until .* \\(travel\\). Nothing is due.*"
+- tapOn: "Profile"
+- tapOn: "Your plan"
+- scrollUntilVisible:
+    element: "I.m back early"
+- tapOn: "I.m back early"
+- extendedWaitUntil:
+    visible: "Pause my plan"
+    timeout: 10000
+- tapOn: "Back"
+
+# Snitch's style (PROF-4)
+- tapOn: "Snitch’s style.*"
+- assertVisible: ".*Up. Scale.*"
+- tapOn: "Tough love.*"
+- tapOn: "Back"
+- assertVisible: "Snitch’s style, Tough love"
+
+# What Snitch remembers (PROF-5)
+- tapOn: "What Snitch remembers"
+- extendedWaitUntil:
+    visible: ".*Nothing yet.*|.*Forget.*"
+    timeout: 10000
+- tapOn: "Back"
+
+# Permissions (PROF-6)
+- scrollUntilVisible:
+    element: "Permissions"
+    visibilityPercentage: 100
+- tapOn: "Permissions"
+- assertVisible: "Location, .*"
+- assertVisible: "Camera, .*"
+- tapOn: "Back"
+
+# Privacy, terms and support (PROF-7)
+- tapOn: "Privacy, terms and support"
+- assertVisible: "Privacy policy"
+- assertVisible: "Terms"
+- assertVisible: ".*NOT MEDICAL ADVICE.*"
+- assertVisible: "Find a helpline"
+- tapOn: "Back"
