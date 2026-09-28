@@ -53,6 +53,10 @@ async function forget() {
   await SecureStore.deleteItemAsync(KEY, STORE).catch(() => {});
 }
 
+/** The server no longer accepts this phone's token (a password reset signs out every other
+ *  device): drop it here too, without calling the server. */
+export const dropSession = () => forget();
+
 export class AuthError extends Error {}
 
 type AuthResponse = { token: string; accountId: string };
