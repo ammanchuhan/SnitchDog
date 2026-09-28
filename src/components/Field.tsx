@@ -3,9 +3,9 @@ import { TextInput, TextInputProps, View } from 'react-native';
 import { font, radius, space, tabular, useTheme } from '../theme';
 import { Text } from './Text';
 
-type Props = TextInputProps & { label?: string; suffix?: string; numeric?: boolean };
+type Props = TextInputProps & { label?: string; suffix?: string; numeric?: boolean; compact?: boolean };
 
-export function Field({ label, suffix, numeric, style, ...rest }: Props) {
+export function Field({ label, suffix, numeric, compact, style, ...rest }: Props) {
   const t = useTheme();
   return (
     <View style={{ gap: space(2) }}>
@@ -32,10 +32,11 @@ export function Field({ label, suffix, numeric, style, ...rest }: Props) {
           style={[
             {
               flex: 1,
-              height: 56,
+              // Compact is for sign-up screens that must fit above the keyboard (SIGNUP-1).
+              height: compact ? 46 : 56,
               color: t.text,
               fontFamily: numeric ? font.bold : font.medium,
-              fontSize: numeric ? 24 : 17,
+              fontSize: numeric ? (compact ? 20 : 24) : 17,
             },
             numeric && tabular,
             style,

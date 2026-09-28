@@ -83,6 +83,7 @@ async function grantPass(p: PlanRow, today: string, input: Record<string, unknow
   if (input.kind === 'week') {
     const ref = weekStart(input.which === 'last_week' ? shiftDate(today, -7) : today);
     if (p.escalated_weeks.includes(ref)) return 'That week has already been judged; too late for a pass.';
+    if (passes.some((x) => x.kind === 'week' && x.ref === ref)) return `That week already has a pass. ${passesLeft(passes, today)} left this month.`;
     await sql`insert into passes (plan_id, kind, ref, reason) values (${p.id}, 'week', ${ref}, ${reason}) on conflict do nothing`;
     return `Pass granted for the week of ${ref}. ${passesLeft(passes, today) - 1} left this month.`;
   }
@@ -97,6 +98,7 @@ async function grantPass(p: PlanRow, today: string, input: Record<string, unknow
   if (!slot) return `No workout to excuse ${input.which}.`;
   const row = sessions.find((r) => r.date === date && r.slot_id === slot.id);
   if (row?.escalated_at) return 'Witnesses were already told about that one; too late for a pass.';
+  if (row?.status === 'excused') return `That workout already has a pass. ${passesLeft(passes, today)} left this month.`;
   await sql`insert into passes (plan_id, kind, ref, reason) values (${p.id}, 'workout', ${`${date}:${slot.id}`}, ${reason}) on conflict do nothing`;
   await sql`
     insert into sessions (plan_id, date, slot_id, status, answered_at)

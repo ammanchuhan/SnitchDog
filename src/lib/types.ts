@@ -151,6 +151,12 @@ export const daysLeftInWeek = (date: string) => {
   return (day === 0 ? 0 : 7 - day) + 1; // includes today
 };
 
+const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** "Tue 29 Sep" */
+export const friendlyDate = (date: string) =>
+  `${WEEKDAY_LABEL[weekdayOf(date)]} ${Number(date.slice(8, 10))} ${MONTH_SHORT[Number(date.slice(5, 7)) - 1]}`;
+
 /* ── witnesses ─────────────────────────────────────────────────────────── */
 
 export const witnessLabel = (w: Witness, i: number) => w.name ?? w.telegramName ?? `Witness ${i + 1}`;

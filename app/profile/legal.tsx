@@ -10,7 +10,7 @@ import { space, useTheme } from '../../src/theme';
 export default function Legal() {
   const t = useTheme();
   return (
-    <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={{ padding: space(5), gap: space(6) }}>
+    <ScrollView automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled" style={{ backgroundColor: t.bg }} contentContainerStyle={{ padding: space(5), gap: space(6) }}>
       <ListGroup>
         <ListRow label="Privacy policy" onPress={() => Linking.openURL('https://snitchdog.com/privacy')} />
         <ListRow label="Terms" onPress={() => Linking.openURL('https://snitchdog.com/terms')} />

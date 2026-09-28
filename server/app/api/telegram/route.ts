@@ -58,7 +58,16 @@ export async function POST(req: Request) {
     `;
     await send(chatId, await write(plan, '', { kind: 'witness_welcome' }));
     await send(chatId, 'Send /stop any time and I’ll never message you again.');
-    await tellOwner(plan, `${w.name ?? tgName ?? 'A witness'} accepted. It counts now.`, 'witness_accepted', 'home', { witnessId: w.id });
+    // The plan starts counting with the first witness; after that, just say who's watching.
+    const watchingNow = (await getWitnesses(plan.id)).filter(isWatching).length;
+    const who = w.name ?? tgName ?? 'A witness';
+    await tellOwner(
+      plan,
+      watchingNow === 1 ? `${who} accepted. It counts now.` : `${who} accepted. ${watchingNow} people are watching.`,
+      'witness_accepted',
+      'home',
+      { witnessId: w.id },
+    );
     return Response.json({ ok: true });
   }
 

@@ -54,7 +54,9 @@ export function ListRow({
     <Pressable
       onPress={onPress}
       disabled={!onPress}
+      accessible
       accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={[label, value, detail].filter(Boolean).join(', ')}
       style={({ pressed }) => ({
         minHeight: 52,
         paddingHorizontal: space(4),
@@ -80,7 +82,7 @@ export function ListRow({
           {value}
         </Text>
       ) : null}
-      {chevron && <SymbolView name="chevron.right" size={14} tintColor={t.textFaint} weight="semibold" style={{ width: 14, height: 14 }} />}
+      {chevron && <SymbolView accessibilityElementsHidden importantForAccessibility="no" name="chevron.right" size={14} tintColor={t.textFaint} weight="semibold" style={{ width: 14, height: 14 }} />}
     </Pressable>
   );
 }

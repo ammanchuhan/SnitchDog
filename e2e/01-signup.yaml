@@ -4,13 +4,24 @@ appId: com.ammanchuhan.snitchdog
 ---
 - launchApp
 - extendedWaitUntil:
-    visible: ".*(Make your account|Hi, I.m Snitch|Welcome back).*"
+    visible: ".*(Make your account|Hi, I.m Snitch|Welcome back|Profile).*"
     timeout: 60000
 # The dev client loads the bundle a second time right after launch; let that settle.
 - extendedWaitUntil:
     visible: "Use a different account"
     timeout: 8000
     optional: true
+# Signed in from an earlier run: sign out the way a person would (PROF-9).
+- runFlow:
+    when:
+      visible: "Profile"
+    commands:
+      - openLink: "snitchdog://profile/account"
+      - tapOn: "Sign out"
+      - assertVisible: ".*Your plan keeps running and your witnesses keep watching.*"
+      - tapOn:
+          text: "Sign out"
+          index: 1
 # Signed in from an earlier run without finishing sign-up: leave that account.
 - runFlow:
     when:
@@ -63,11 +74,18 @@ appId: com.ammanchuhan.snitchdog
 - tapOn: "Got it"
 
 # 3 Name
+- extendedWaitUntil:
+    visible: ".*What should I call you.*"
+    timeout: 5000
 - tapOn: "First name"
 - inputText: "Sam"
-- tapOn: "Continue"
+- pressKey: Enter
 
 # 4 Age: under 18 is refused kindly
+- extendedWaitUntil:
+    visible: ".*How old are you.*"
+    timeout: 5000
+- tapOn: "Age"
 - inputText: "16"
 - extendedWaitUntil:
     visible: ".*only for adults.*"
@@ -77,17 +95,23 @@ appId: com.ammanchuhan.snitchdog
 - extendedWaitUntil:
     visible: ".*Nice to meet you, Sam.*"
     timeout: 5000
-- tapOn: "Continue"
+- waitForAnimationToEnd
+- tapOn:
+    text: "Continue"
+    retryTapIfNoChange: true
 
 # 5 Body: an impossible weight is caught
-- assertVisible: ".*gender if you want to share it.*"
+- extendedWaitUntil:
+    visible: ".*gender if you want to share it.*"
+    timeout: 5000
 - tapOn: "5"
 - inputText: "5"
+- waitForAnimationToEnd
 - tapOn: "10"
 - inputText: "10"
+- waitForAnimationToEnd
 - tapOn:
-    text: "0"
-    index: 0
+    id: "weight"
 - inputText: "20"
 - extendedWaitUntil:
     visible: ".*doesn.t look right.*"
@@ -95,10 +119,17 @@ appId: com.ammanchuhan.snitchdog
 - eraseText: 3
 - inputText: "210"
 - tapOn: "Non-binary"
-- assertVisible: "Only used to shape your workout plan."
-- tapOn: "Continue"
+- assertVisible: ".*ONLY USED TO SHAPE YOUR WORKOUT PLAN.*"
+- takeScreenshot: body
+- waitForAnimationToEnd
+- tapOn:
+    text: "Continue"
+    retryTapIfNoChange: true
 
 # 6 Target: below the healthy floor is refused, then the goal is taken as the goal
+- extendedWaitUntil:
+    visible: ".*Where do you want to get to.*"
+    timeout: 5000
 - inputText: "120"
 - extendedWaitUntil:
     visible: ".*healthy weight starts around.*"
@@ -110,13 +141,21 @@ appId: com.ammanchuhan.snitchdog
     timeout: 5000
 - assertNotVisible: ".*first stop.*"
 - takeScreenshot: target
-- tapOn: "Continue"
+- waitForAnimationToEnd
+- tapOn:
+    text: "Continue"
+    retryTapIfNoChange: true
 
 # 7 Data
-- assertVisible: ".*A quick word about your data.*"
+- extendedWaitUntil:
+    visible: ".*A quick word about your data.*"
+    timeout: 5000
 - tapOn: "Got it"
 
 # 8 Witnesses: one to three
+- extendedWaitUntil:
+    visible: ".*You.ll probably ignore me.*"
+    timeout: 5000
 - tapOn: "First name"
 - inputText: "Alex"
 - tapOn: "+ Add another"

@@ -15,7 +15,7 @@ export default function SnitchStyle() {
   if (!plan) return null;
 
   return (
-    <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={{ padding: space(5), gap: space(5) }}>
+    <ScrollView automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled" style={{ backgroundColor: t.bg }} contentContainerStyle={{ padding: space(5), gap: space(5) }}>
       <Choice<Style>
         value={plan.style}
         onChange={(style) => run(() => patchPlan({ style }))}

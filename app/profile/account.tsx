@@ -49,7 +49,7 @@ export default function Account() {
     );
 
   return (
-    <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={{ padding: space(5), gap: space(6) }} keyboardShouldPersistTaps="handled">
+    <ScrollView automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive" style={{ backgroundColor: t.bg }} contentContainerStyle={{ padding: space(5), gap: space(6) }} keyboardShouldPersistTaps="handled">
       <ListGroup>
         <ListRow label="Email" value={plan.email ?? 'Hidden by Apple'} />
         {plan.hasPassword ? <ListRow label="Change password" onPress={() => setChanging((c) => !c)} /> : null}

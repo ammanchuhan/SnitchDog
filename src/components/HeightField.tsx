@@ -12,10 +12,12 @@ export function HeightField({
   cm,
   unit,
   onChange,
+  compact,
 }: {
   cm?: number;
   unit: HeightUnit;
   onChange: (cm: number | undefined, unit: HeightUnit) => void;
+  compact?: boolean;
 }) {
   const t = useTheme();
   const inches = cm ? Math.round(cm / 2.54) : undefined;
@@ -70,6 +72,7 @@ export function HeightField({
 
       {unit === 'cm' ? (
         <Field
+          compact={compact}
           numeric
           keyboardType="number-pad"
           placeholder="178"
@@ -82,9 +85,10 @@ export function HeightField({
           }}
         />
       ) : (
-        <View style={{ flexDirection: 'row', gap: space(3) }}>
+        <View style={{ flexDirection: 'row', gap: space(2) }}>
           <View style={{ flex: 1 }}>
             <Field
+              compact={compact}
               numeric
               keyboardType="number-pad"
               placeholder="5"
@@ -99,6 +103,7 @@ export function HeightField({
           </View>
           <View style={{ flex: 1 }}>
             <Field
+              compact={compact}
               numeric
               keyboardType="number-pad"
               placeholder="10"

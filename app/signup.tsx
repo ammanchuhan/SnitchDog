@@ -189,38 +189,41 @@ export default function SignUp() {
       case 'age':
         return <Field numeric keyboardType="number-pad" maxLength={3} autoFocus placeholder="Age" value={age} onChangeText={setAge} />;
       case 'body':
+        // Height and weight share a row so the step fits above the keyboard on an SE (SIGNUP-1).
         return (
           <View style={{ gap: space(3) }}>
-            <HeightField
-              cm={heightCm}
-              unit={heightUnit}
-              onChange={(cm, u) => {
-                setHeightCm(cm);
-                setHeightUnit(u);
-                setUnit(u === 'cm' ? 'kg' : 'lb');
-              }}
-            />
-            <View style={{ gap: space(2) }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text variant="micro" tone="faint">
-                  WEIGHT TODAY
-                </Text>
-                <Toggle options={['lb', 'kg'] as const} value={unit} onChange={setUnit} />
+            <View style={{ flexDirection: 'row', gap: space(3), alignItems: 'flex-end' }}>
+              <View style={{ flex: 2 }}>
+                <HeightField
+                  compact
+                  cm={heightCm}
+                  unit={heightUnit}
+                  onChange={(cm, u) => {
+                    setHeightCm(cm);
+                    setHeightUnit(u);
+                    setUnit(u === 'cm' ? 'kg' : 'lb');
+                  }}
+                />
               </View>
-              <Field numeric keyboardType="decimal-pad" placeholder="0" suffix={unit} value={startValue} onChangeText={setStartValue} />
+              <View style={{ flex: 1.2, gap: space(2) }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text variant="micro" tone="faint">
+                    WEIGHT
+                  </Text>
+                  <Toggle options={['lb', 'kg'] as const} value={unit} onChange={setUnit} />
+                </View>
+                <Field compact numeric keyboardType="decimal-pad" placeholder="0" suffix={unit} value={startValue} onChangeText={setStartValue} testID="weight" />
+              </View>
             </View>
             <View style={{ gap: space(2) }}>
               <Text variant="micro" tone="faint">
-                GENDER (OPTIONAL)
+                GENDER (OPTIONAL) · ONLY USED TO SHAPE YOUR WORKOUT PLAN
               </Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space(2) }}>
                 {GENDERS.map((g) => (
                   <Chip key={g.key} label={g.label} on={gender === g.key} onPress={() => setGender(gender === g.key ? undefined : g.key)} />
                 ))}
               </View>
-              <Text variant="small" tone="faint">
-                Only used to shape your workout plan.
-              </Text>
             </View>
           </View>
         );
@@ -297,7 +300,19 @@ export default function SignUp() {
         </View>
 
         <View style={{ flex: 1, paddingHorizontal: space(6), paddingTop: space(5), gap: space(4) }}>
-          <SpeechBubble lines={lines} />
+          {keyboard ? (
+            // With the keyboard up there's no room for the bubble: Snitch's words as a heading.
+            <View accessible accessibilityLabel={`Snitch: ${lines.join(' ')}`} style={{ gap: space(1) }}>
+              <Text variant="heading">{lines[0]}</Text>
+              {lines.slice(1).map((l, i) => (
+                <Text key={i} variant="small" tone="dim">
+                  {l}
+                </Text>
+              ))}
+            </View>
+          ) : (
+            <SpeechBubble lines={lines} />
+          )}
           {!keyboard ? (
             <View style={{ flex: 1, justifyContent: 'center', minHeight: 0 }}>
               <Snitch key={mood} mood={mood} height={snitchHeight} />
@@ -347,7 +362,7 @@ function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () 
       accessibilityState={{ selected: on }}
       style={{
         paddingHorizontal: space(3),
-        paddingVertical: space(2),
+        paddingVertical: 6,
         borderRadius: radius.pill,
         borderWidth: 1,
         borderColor: on ? t.text : t.line,

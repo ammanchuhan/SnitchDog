@@ -1,0 +1,26 @@
+# After Alex accepts on Telegram (run.sh plays Alex): the plan counts, the Home banner goes,
+# Snitch says so in the chat, and the witness shows as watching.
+appId: com.ammanchuhan.snitchdog
+---
+- runFlow: _launch.yaml
+- tapOn: "Home"
+- scrollUntilVisible:
+    element: "Log weigh-in|.*WEIGHED IN AT.*"
+    direction: UP
+    optional: true
+- assertNotVisible: ".*Nobody is watching yet.*"
+- assertVisible: "DAY 1"
+- tapOn: "Coach"
+- extendedWaitUntil:
+    visible: ".*Alex accepted. It counts now."
+    timeout: 15000
+- tapOn: "Profile"
+- assertVisible: "Witnesses, 1 of 2"
+- tapOn: "Witnesses.*"
+- assertVisible: "Alex, Watching"
+- tapOn: "Alex.*"
+- assertVisible: "WATCHING"
+- assertVisible: "Alex is watching."
+- assertNotVisible: "Share the invite"
+- tapOn: "Back"
+- tapOn: "Back"

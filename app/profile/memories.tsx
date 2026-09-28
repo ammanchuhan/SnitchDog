@@ -19,7 +19,7 @@ export default function Memories() {
   }, []);
 
   return (
-    <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={{ padding: space(5), gap: space(5) }}>
+    <ScrollView automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled" style={{ backgroundColor: t.bg }} contentContainerStyle={{ padding: space(5), gap: space(5) }}>
       {!memories ? (
         <ActivityIndicator color={t.textFaint} />
       ) : memories.length === 0 ? (
