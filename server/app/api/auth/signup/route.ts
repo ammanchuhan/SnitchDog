@@ -1,10 +1,8 @@
-import { createAccount, findByEmail, hashPassword, issueToken, normaliseEmail } from '@/lib/auth';
+import { createAccount, findByEmail, hashPassword, issueToken, MIN_PASSWORD, normaliseEmail } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-/** Long, not clever. Composition rules push people towards predictable passwords. */
-const MIN_PASSWORD = 10;
 
 export async function POST(req: Request) {
   const { email, password } = await req.json().catch(() => ({}));

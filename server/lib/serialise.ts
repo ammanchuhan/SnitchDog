@@ -1,48 +1,85 @@
-import { type PlanRow, getSessions, getWeighIns } from './db';
+import { type PlanRow, type WitnessRow, getPasses, getSessions, getSteps, getWeighIns, getWitnesses, isWatching } from './db';
+import { countsFrom, passesLeft, weekMath } from './rules';
+import { localNow } from './time';
 
-/** The shape the app expects back: everything it knows, plus the fields only the server owns.
- *
- * Shared by `GET /api/plan` (the account's plan, used to restore a device) and
- * `GET /api/plan/:id`, so the two can never drift into returning different shapes. */
+export type WitnessStatus = 'waiting' | 'watching' | 'stepped_back' | 'expired';
+
+export function witnessStatus(w: WitnessRow): WitnessStatus {
+  if (isWatching(w)) return 'watching';
+  if (w.stopped_at) return 'stepped_back';
+  if (!w.linked_at && new Date(w.expires_at) < new Date()) return 'expired';
+  return 'waiting';
+}
+
+/** Everything the app shows, in one response. The server is the source of truth (P5); the app
+ *  caches this and asks again after every change. */
 export async function serialisePlan(p: PlanRow) {
-  const [weighIns, sessions] = await Promise.all([getWeighIns(p.id), getSessions(p.id)]);
+  const [weighIns, sessions, witnesses, passes, steps] = await Promise.all([
+    getWeighIns(p.id),
+    getSessions(p.id),
+    getWitnesses(p.id),
+    getPasses(p.id),
+    getSteps(p.id),
+  ]);
+  const { date } = localNow(p.timezone);
+  const start = countsFrom(p, witnesses);
 
   return {
     id: p.id,
     ownerName: p.owner_name,
     timezone: p.timezone,
     createdAt: p.created_at,
+    countsFrom: start,
     goal: {
-      unit: p.unit,
+      unit: p.unit as 'lb' | 'kg',
       start: Number(p.start_value),
       target: Number(p.target_value),
-      wakeHour: p.wake_hour,
       perWeek: p.per_week,
     },
-    routine: p.routine,
-    ownerChatId: p.owner_chat_id ?? undefined,
-    escalatedWeeks: p.escalated_weeks,
-    witness: {
-      name: p.witness_name,
-      linked: !!p.witness_chat_id,
-      linkedAt: p.witness_linked_at ?? undefined,
-      inviteToken: p.witness_token,
+    profile: {
+      heightCm: p.height_cm ? Number(p.height_cm) : undefined,
+      heightUnit: (p.height_unit ?? undefined) as 'ft' | 'cm' | undefined,
+      age: p.age ?? undefined,
+      gender: p.gender ?? undefined,
     },
+    confirmedAt: p.plan_confirmed_at ?? undefined,
+    routine: p.routine,
+    gym: p.gym ?? undefined,
+    stepsGoal: p.steps_goal ?? undefined,
+    style: p.style,
+    pause: p.paused_from ? { from: p.paused_from, until: p.paused_until!, reason: p.pause_reason ?? '' } : undefined,
+    witnesses: witnesses
+      .filter((w) => !w.removed_at)
+      .map((w) => ({
+        id: w.id,
+        name: w.name ?? undefined,
+        telegramName: w.tg_name ?? undefined,
+        inviteToken: w.token,
+        status: witnessStatus(w),
+        linkedAt: w.linked_at ?? undefined,
+        expiresAt: w.expires_at,
+      })),
+    escalatedWeeks: p.escalated_weeks,
     weighIns: weighIns.map((w) => ({
       date: w.date,
       value: Number(w.value),
       loggedAt: w.logged_at,
-      proof: w.proof ?? undefined,
+      verified: w.proof !== 'typed',
     })),
-    // 'pending' rows are follow-up bookkeeping, not answers — the app never sees them.
-    sessions: sessions
+    // 'pending' rows are reminder bookkeeping, not results.
+    workouts: sessions
       .filter((s) => s.status !== 'pending')
       .map((s) => ({
         date: s.date,
         slotId: s.slot_id,
-        status: s.status,
-        answeredAt: s.answered_at ?? undefined,
+        status: s.status as 'done' | 'missed' | 'excused',
+        minutes: s.minutes ?? undefined,
         escalatedAt: s.escalated_at ?? undefined,
       })),
+    steps,
+    passes: passes.map((x) => ({ kind: x.kind, ref: x.ref, reason: x.reason, createdAt: x.created_at })),
+    passesLeft: passesLeft(passes, date),
+    today: date,
+    week: weekMath(p, start, weighIns, date),
   };
 }
