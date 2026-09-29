@@ -43,6 +43,7 @@ export const LIMITS = {
   api: { name: 'api', max: 120, windowSec: 60 },
   chat: { name: 'chat', max: 15, windowSec: 60 },
   weighIn: { name: 'weigh-in', max: 20, windowSec: 3600 },
+  scaleRead: { name: 'scale-read', max: 30, windowSec: 3600 },
   addWitness: { name: 'add-witness', max: 10, windowSec: 3600 },
   password: { name: 'password', max: 5, windowSec: 3600 },
   signup: { name: 'signup', max: 5, windowSec: 3600 },
