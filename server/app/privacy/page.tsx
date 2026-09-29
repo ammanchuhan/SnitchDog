@@ -6,7 +6,7 @@ export const metadata = { title: 'Privacy policy · SnitchDog' };
  *  if the app starts storing something new, this page changes in the same commit. */
 export default function Privacy() {
   return (
-    <Prose title="Privacy policy" updated="28 September 2026">
+    <Prose title="Privacy policy" updated="29 September 2026">
       <p>
         SnitchDog helps you keep a promise to yourself: weigh in three mornings a week, do the workouts you planned, and
         let up to three people you pick (your witnesses) hear about it if you stop. This page says exactly what that
@@ -15,10 +15,6 @@ export default function Privacy() {
 
       <h2>What stays on your phone</h2>
       <ul>
-        <li>
-          <b>Scale photos.</b> Your phone reads the number off the photo and then deletes it. The photo is never
-          uploaded.
-        </li>
         <li>
           <b>Mirror photos.</b> Stored only in the app on your phone. Never uploaded, never seen by us, by the AI coach
           or by your witnesses. If you turn on “Also save to my Photos”, a copy goes to your Photos library.
@@ -31,6 +27,14 @@ export default function Privacy() {
           <b>Witness names</b>, until each witness accepts your invite.
         </li>
       </ul>
+
+      <h2>Scale photos</h2>
+      <p>
+        To read your weigh-in, a small copy of the scale photo is sent to our server and read by
+        Anthropic’s Claude. Only the number comes back. The photo isn’t stored anywhere, by us or in the
+        app, and it’s deleted from your phone as soon as it’s read. Without a connection, your phone reads
+        it itself and nothing is sent.
+      </p>
 
       <h2>What we store on our server</h2>
       <ul>
@@ -59,8 +63,8 @@ export default function Privacy() {
       </p>
       <p>
         <b>The AI coach.</b> Snitch’s replies are written by Anthropic’s Claude. To write them we send the relevant
-        parts of your plan and history, your chat messages and Snitch’s notes about you. Your weight is never sent to
-        the model. Anthropic doesn’t use API data to train its models.
+        parts of your plan and history, your chat messages and Snitch’s notes about you, and the scale photo when
+        reading a weigh-in. Your weight history is never sent to the model. Anthropic doesn’t use API data to train its models.
       </p>
       <p>
         <b>Service providers</b> we use to run SnitchDog: Vercel (hosting), Neon (database), Anthropic (the coach),

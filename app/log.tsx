@@ -140,7 +140,7 @@ export default function Log() {
                     Photograph the scale
                   </Text>
                   <Text variant="small" tone="dim" center>
-                    Stand on it, then photograph the display. I read the number and delete the photo.
+                    Stand on it, then photograph the display. I read the number, then the photo is deleted. It’s never kept.
                   </Text>
                 </Pressable>
               )}
