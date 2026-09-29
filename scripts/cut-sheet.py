@@ -26,6 +26,10 @@ BOXES = {
     'face-grin':  (880, 1060, 1220, 1480, 96),
     'face-worried': (1470, 1060, 1940, 1480, 96),
     'face-sly':   (2160, 1060, 2540, 1480, 96),
+    # Close-ups: head and shoulders cut from the full-body poses.
+    'bust-flex':  (1950, 80, 2720, 600, 140),
+    'bust-turn':  (720, 80, 1290, 560, 140),
+    'bust-stand': (80, 80, 690, 560, 140),
 }
 
 src = np.asarray(Image.open(os.path.expanduser(sys.argv[1])).convert('RGB')).astype(np.float32)
