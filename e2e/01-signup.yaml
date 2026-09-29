@@ -152,7 +152,20 @@ appId: com.ammanchuhan.snitchdog
     timeout: 5000
 - tapOn: "Got it"
 
-# 8 Witnesses: one to three
+# 8 How Snitch talks to you (VIS-7)
+- extendedWaitUntil:
+    visible: ".*How do you want me to talk to you.*"
+    timeout: 5000
+- takeScreenshot: style
+- tapOn: "Drill Sergeant.*"
+- extendedWaitUntil:
+    visible: ".*Don.t say I didn.t warn you.*"
+    timeout: 5000
+- tapOn:
+    text: "Continue"
+    retryTapIfNoChange: true
+
+# 9 Witnesses: one to three
 - extendedWaitUntil:
     visible: ".*You.ll probably ignore me.*"
     timeout: 5000

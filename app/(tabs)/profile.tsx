@@ -7,10 +7,10 @@ import { Snitch } from '../../src/components/Snitch';
 import { useTabBarClearance } from '../../src/components/TabBar';
 import { Text } from '../../src/components/Text';
 import { usePlan } from '../../src/lib/store';
+import { styleLabel } from '../../src/lib/styles';
 import { watching } from '../../src/lib/types';
 import { space, useTheme } from '../../src/theme';
 
-const STYLE_LABEL = { gentle: 'Gentle', balanced: 'Balanced', tough: 'Tough love' } as const;
 
 /** Everything about you, your deal and Snitch, as one grouped list (PROF-1). Each row goes one
  *  level in; nothing goes deeper than that. */
@@ -48,7 +48,7 @@ export default function Profile() {
         <View style={{ gap: space(3) }}>
           <Snitch mood="ready" height={110} />
           <ListGroup title="Snitch">
-            <ListRow label="Snitch’s style" value={STYLE_LABEL[plan.style]} onPress={() => router.push('/profile/style')} />
+            <ListRow label="Snitch’s style" value={styleLabel(plan.style)} onPress={() => router.push('/profile/style')} />
             <ListRow label="What Snitch remembers" onPress={() => router.push('/profile/memories')} />
           </ListGroup>
         </View>

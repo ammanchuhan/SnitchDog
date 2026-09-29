@@ -254,10 +254,10 @@ export default function Home() {
                 <Card key={slot.id} style={{ gap: space(1) }}>
                   <Text variant="micro" tone="faint">
                     {slot.label.toUpperCase()}
-                    {w?.status === 'excused' ? ' · PASS' : ''}
+                    {w?.status === 'excused' ? ' · HALL PASS' : ''}
                   </Text>
                   <Text variant="bodyStrong">
-                    {w?.status === 'excused' ? 'Excused today' : `At ${plan.gym?.name ?? 'your gym'} by ${hourLabel(slot.hour)}`}
+                    {w?.status === 'excused' ? 'Hall pass: nothing due' : `At ${plan.gym?.name ?? 'your gym'} by ${hourLabel(slot.hour)}`}
                   </Text>
                   {w?.status !== 'excused' && (
                     <Text variant="small" tone="dim">

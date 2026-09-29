@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 const token = () => randomBytes(12).toString('base64url');
 const GENDERS = ['woman', 'man', 'non_binary', 'prefer_not'];
-const STYLES = ['gentle', 'balanced', 'tough'];
+const STYLES = ['gentle', 'balanced', 'tough', 'drill'];
 
 /** The signed-in account's plan. 404 means they haven't finished sign-up. */
 export const GET = authed(async (req, c) => {
@@ -38,11 +38,11 @@ export const POST = signedIn(async (req, c) => {
   await sql`
     insert into plans
       (id, account_id, owner_name, timezone, unit, start_value, target_value, per_week,
-       height_cm, height_unit, age, gender)
+       height_cm, height_unit, age, gender, style)
     values
       (${id}, ${c.account.id}, ${b.ownerName.trim().slice(0, 40)}, ${b.timezone}, ${unit},
        ${b.start}, ${b.target}, 3, ${heightCm}, ${b.heightUnit === 'cm' ? 'cm' : 'ft'}, ${age},
-       ${GENDERS.includes(b.gender) ? b.gender : null})
+       ${GENDERS.includes(b.gender) ? b.gender : null}, ${STYLES.includes(b.style) ? b.style : 'balanced'})
   `;
   for (let i = 0; i < witnesses; i += 1) {
     await sql`insert into witnesses (id, plan_id, token) values (${token()}, ${id}, ${token()})`;

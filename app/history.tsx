@@ -31,7 +31,7 @@ export default function History() {
   }
 
   const labelFor = (slotId: string) => plan.routine.find((s) => s.id === slotId)?.label ?? 'Workout';
-  const STATUS = { done: 'done', missed: 'missed', excused: 'excused' } as const;
+  const STATUS = { done: 'done', missed: 'missed', excused: 'on a hall pass' } as const;
 
   return (
     <Screen edges={['bottom']}>
