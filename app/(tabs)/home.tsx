@@ -8,8 +8,8 @@ import { Card } from '../../src/components/Card';
 import { DayStrip } from '../../src/components/DayStrip';
 import { Figure, Section } from '../../src/components/Figure';
 import { hourLabel } from '../../src/components/HourPicker';
-import { Snitch, SnitchMood } from '../../src/components/Snitch';
-import { TAB_BAR_CLEARANCE } from '../../src/components/TabBar';
+import { SnitchAvatar } from '../../src/components/Snitch';
+import { useTabBarClearance } from '../../src/components/TabBar';
 import { Text } from '../../src/components/Text';
 import { checkTarget, heightOf } from '../../src/lib/limits';
 import { hasMirrorPhoto } from '../../src/lib/mirror';
@@ -54,12 +54,13 @@ function weekLine(p: Plan) {
   return `${w.needed} more this week.`;
 }
 
-/** Snitch's pose tracks the day (HOME-1). */
-function moodFor(p: Plan, allDone: boolean, due: number): SnitchMood {
+/** Snitch's face tracks the day (HOME-1): worried when the week is on the line, grinning once
+ *  today's work is done, sly otherwise, because somebody is watching. */
+function faceFor(p: Plan, allDone: boolean, due: number): 'happy' | 'grin' | 'worried' | 'sly' {
   if (p.week.counting && (p.week.impossible || p.week.noRoom) && !p.week.todayDone) return 'worried';
-  if (allDone && due > 0) return 'proud';
-  if (p.week.todayDone || p.week.met) return 'calm';
-  return 'ready';
+  if (allDone && due > 0) return 'grin';
+  if (p.week.todayDone || p.week.met) return 'happy';
+  return 'sly';
 }
 
 /** Home answers, in order: what you still have to set up, where you stand, what's due today,
@@ -68,6 +69,7 @@ export default function Home() {
   const { plan, refresh } = usePlan();
   const router = useRouter();
   const t = useTheme();
+  const clearance = useTabBarClearance();
   const [refreshing, setRefreshing] = useState(false);
   const [mirrorTaken, setMirrorTaken] = useState(true);
 
@@ -111,18 +113,21 @@ export default function Home() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }} edges={['top']}>
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: space(6), paddingBottom: TAB_BAR_CLEARANCE }}
+        contentContainerStyle={{ paddingHorizontal: space(5), paddingBottom: clearance }}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={t.textFaint} />}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: space(3), paddingTop: space(5), paddingBottom: space(5) }}>
-          <View style={{ flex: 1, gap: space(2) }}>
+        {/* A close-up of Snitch beside the greeting; the face tracks the day (HOME-1). */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(3), paddingTop: space(4), paddingBottom: space(4) }}>
+          <SnitchAvatar size={52} mood={faceFor(plan, allDone, due.length)} />
+          <View style={{ flex: 1, gap: 2 }}>
             <Text variant="micro" tone="faint" numeric>
               {day > 0 ? `DAY ${day}` : 'NOT COUNTING YET'}
             </Text>
-            <Text variant="display">{greeting(plan.ownerName)}</Text>
+            <Text variant="display" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+              {greeting(plan.ownerName)}
+            </Text>
           </View>
-          <Snitch mood={moodFor(plan, allDone, due.length)} height={96} />
         </View>
 
         {/* Onboarding banners (HOME-2): each goes when it's done and comes back if it undoes. */}

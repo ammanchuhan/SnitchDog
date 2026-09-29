@@ -33,13 +33,17 @@ const ICONS: Record<string, { on: SFSymbol; off: SFSymbol; label: string }> = {
   profile: { on: 'person.crop.circle.fill', off: 'person.crop.circle', label: 'Profile' },
 };
 
-/** What a scrolling screen must leave clear at its bottom.
- *
- *  Measured from the PHYSICAL bottom of the screen, because the tab screens run their scroll
- *  views edge to edge (`edges={['top']}`): the home-indicator inset (~34) plus the pill (~74)
- *  plus room to breathe. Screens that do inset their bottom edge just get a little extra scroll
- *  room, which costs nothing. */
-export const TAB_BAR_CLEARANCE = 124;
+/** The bar's own height: padding, icon, label. */
+const BAR_HEIGHT = 56;
+/** How far the bar sits above the bottom of the screen: just above the home indicator. */
+const barBottom = (insetBottom: number) => Math.max(insetBottom - space(3), space(2));
+
+/** What a scrolling screen must leave clear at its bottom, measured from the physical bottom of
+ *  the screen (the tab screens run edge to edge): the bar, where it sits, and a little air. */
+export function useTabBarClearance() {
+  const insets = useSafeAreaInsets();
+  return barBottom(insets.bottom) + BAR_HEIGHT + space(4);
+}
 
 export function TabBar({ state, navigation }: TabBarProps) {
   const t = useTheme();
@@ -52,7 +56,7 @@ export function TabBar({ state, navigation }: TabBarProps) {
         position: 'absolute',
         left: space(5),
         right: space(5),
-        bottom: Math.max(insets.bottom, space(3)),
+        bottom: barBottom(insets.bottom),
       }}
     >
       {/* Two views on purpose: iOS cannot clip and cast a shadow from the same layer — set
@@ -81,7 +85,7 @@ export function TabBar({ state, navigation }: TabBarProps) {
           // systemChromeMaterial follows the system light/dark, so the pill stays glass in both.
           tint={Platform.OS === 'ios' ? 'systemChromeMaterial' : t.scheme === 'dark' ? 'dark' : 'light'}
           intensity={Platform.OS === 'ios' ? 80 : 60}
-          style={{ flexDirection: 'row', paddingHorizontal: space(2), paddingVertical: space(2) }}
+          style={{ flexDirection: 'row', height: BAR_HEIGHT, alignItems: 'center', paddingHorizontal: space(1) }}
         >
           {state.routes.map((route, i) => {
             const icon = ICONS[route.name];
@@ -101,8 +105,8 @@ export function TabBar({ state, navigation }: TabBarProps) {
                 style={{
                   flex: 1,
                   alignItems: 'center',
-                  gap: 3,
-                  paddingVertical: space(2),
+                  gap: 1,
+                  paddingVertical: space(1),
                   borderRadius: radius.pill,
                   backgroundColor: focused
                     ? t.scheme === 'dark'
@@ -113,16 +117,16 @@ export function TabBar({ state, navigation }: TabBarProps) {
               >
                 <SymbolView
                   name={focused ? icon.on : icon.off}
-                  size={22}
+                  size={20}
                   tintColor={focused ? t.ink : t.textFaint}
                   weight={focused ? 'semibold' : 'regular'}
                   resizeMode="scaleAspectFit"
-                  style={{ width: 24, height: 24 }}
+                  style={{ width: 22, height: 22 }}
                 />
                 <Text
                   style={{
                     fontFamily: font.semibold,
-                    fontSize: 11,
+                    fontSize: 10,
                     color: focused ? t.ink : t.textFaint,
                   }}
                 >
