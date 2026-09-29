@@ -66,14 +66,15 @@ export const planResponse = async (plan: PlanRow) => Response.json(await seriali
 
 export const isDate = (s: unknown): s is string => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
 
-/** Request bodies here are small JSON; anything large is refused before it's parsed. */
+/** Request bodies here are small JSON; anything large is refused before it's parsed. The scale
+ *  photo route passes a larger limit. */
 const MAX_BODY = 32 * 1024;
 
-export async function readJson(req: Request): Promise<Record<string, any>> {
+export async function readJson(req: Request, maxBytes = MAX_BODY): Promise<Record<string, any>> {
   const length = Number(req.headers.get('content-length') ?? 0);
-  if (length > MAX_BODY) return {};
+  if (length > maxBytes) return {};
   const text = await req.text().catch(() => '');
-  if (text.length > MAX_BODY) return {};
+  if (text.length > maxBytes) return {};
   try {
     const body = JSON.parse(text);
     return body && typeof body === 'object' ? body : {};
