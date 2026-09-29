@@ -4,6 +4,7 @@ import { Choice } from '../../src/components/Choice';
 import { Text } from '../../src/components/Text';
 import { patchPlan } from '../../src/lib/api';
 import { usePlan } from '../../src/lib/store';
+import { STYLES } from '../../src/lib/styles';
 import type { Style } from '../../src/lib/types';
 import { space, useTheme } from '../../src/theme';
 
@@ -19,11 +20,7 @@ export default function SnitchStyle() {
       <Choice<Style>
         value={plan.style}
         onChange={(style) => run(() => patchPlan({ style }))}
-        options={[
-          { key: 'gentle', label: 'Gentle', note: '“Morning, Sam. Step on the scale when you’re up. Two more this week.”' },
-          { key: 'balanced', label: 'Balanced', note: '“Morning. Step on the scale. Two more this week, four days to do it.”' },
-          { key: 'tough', label: 'Tough love', note: '“Up. Scale. Two more this week and you’re not getting a third chance.”' },
-        ]}
+        options={STYLES.map((x) => ({ key: x.key, label: x.label, note: x.sample }))}
       />
       <View style={{ gap: space(2) }}>
         <Text variant="small" tone="dim">

@@ -47,6 +47,8 @@ export const STYLE_NOTE: Record<Style, string> = {
   gentle: 'Style the person chose: Gentle. Lead with encouragement; soften the push, but still say what is true.',
   balanced: 'Style the person chose: Balanced. Warm and direct in equal measure.',
   tough: 'Style the person chose: Tough love. Blunt and short; no cushioning, never cruel.',
+  drill:
+    'Style the person chose: Drill Sergeant. Loud and relentless about showing up: short commands, no patience for excuses, every miss called out. Still never about their body, weight or food, never an insult to them as a person.',
 };
 
 const SYSTEM = `${SNITCH_VOICE}
@@ -82,21 +84,25 @@ export function weekLine(w: WeekMath): string {
 
 function template(p: PlanRow, m: Moment): string {
   const tough = p.style === 'tough';
+  const drill = p.style === 'drill';
   const gentle = p.style === 'gentle';
   switch (m.kind) {
     case 'morning':
       if (m.week.met) return "Morning. You've made the week already; the scale is optional today.";
+      if (drill) return `On your feet, ${p.owner_name}. Scale. Now. ${weekLine(m.week)}`;
       return `${tough ? 'Up.' : gentle ? `Morning, ${p.owner_name}.` : 'Morning.'} Step on the scale. ${weekLine(m.week)}`;
     case 'morning_chase':
-      return `Still no weigh-in. ${weekLine(m.week)}`;
+      return drill ? `Still nothing on the scale. Move. ${weekLine(m.week)}` : `Still no weigh-in. ${weekLine(m.week)}`;
     case 'workout_reminder':
-      return `${m.label} today. Be at ${m.gym} by ${hourLabel(m.hour)}; I'll see you get there.`;
+      return drill
+        ? `${m.label} today. ${m.gym}, ${hourLabel(m.hour)}. Be there.`
+        : `${m.label} today. Be at ${m.gym} by ${hourLabel(m.hour)}; I'll see you get there.`;
     case 'workout_missed':
       return m.run >= 2
         ? `${m.label} missed. That's ${m.run} in a row.`
         : `${m.label} missed yesterday. One more in a row and your witnesses hear about it.`;
     case 'told_them':
-      return `I told ${joinNames(m.names)}. ${m.why === 'week' ? 'Next week starts clean.' : 'Next workout is a fresh start.'}`;
+      return `I snitched to ${joinNames(m.names)}. ${m.why === 'week' ? 'Next week starts clean.' : 'Next workout is a fresh start.'}`;
     case 'mirror_intro':
       return "One more thing, now you've done a week: take a mirror photo each Sunday. It stays on your phone; I never see it. In a few months you'll be glad you did.";
     case 'mirror_weekly':
