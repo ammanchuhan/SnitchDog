@@ -125,10 +125,10 @@ export default function Analytics() {
         >
           <View style={{ flex: 1, paddingRight: space(4) }}>
             <Text variant="bodyStrong" tone={called > 0 ? 'ember' : 'default'}>
-              Your witnesses have been told
+              Snitch Count
             </Text>
             <Text variant="small" tone="dim">
-              Every other number here is yours. This one is the deal.
+              Times your witnesses have been told. Every other number here is yours; this one is the deal.
             </Text>
           </View>
           <Text variant="display" numeric tone={called > 0 ? 'ember' : 'default'}>

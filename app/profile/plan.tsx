@@ -92,6 +92,7 @@ export default function YourPlan() {
           <ListRow label="No plan yet" detail="Snitch builds it with you in chat." />
         )}
         {plan.stepsGoal ? <ListRow label="Daily steps" value={plan.stepsGoal.toLocaleString()} /> : null}
+        <ListRow label="Hall passes left this month" value={`${plan.passesLeft}`} detail="Ask Snitch for one when life gets in the way." />
       </ListGroup>
 
       {plan.gym && (

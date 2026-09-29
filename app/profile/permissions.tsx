@@ -32,7 +32,7 @@ export default function Permissions() {
 
   return (
     <ScrollView automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled" style={{ backgroundColor: t.bg }} contentContainerStyle={{ padding: space(5), gap: space(6) }}>
-      <ListGroup footer="Without them you won’t hear from Snitch until you open the app: not the 4 am weigh-in, and not when your witnesses have been told.">
+      <ListGroup footer="Without them you won’t hear from Snitch until you open the app: not the 4 am weigh-in, and not when Snitch snitches.">
         <ListRow label="Notifications" value={LABEL[push]} tone={push === 'on' ? undefined : 'ember'} onPress={() => Linking.openSettings()} />
       </ListGroup>
       <ListGroup footer="Needs “Always”, so a workout counts without opening the app. Only “arrived” and “left” are worked out, on this phone.">
