@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ListGroup, ListRow } from '../../src/components/List';
 import { Snitch } from '../../src/components/Snitch';
-import { TAB_BAR_CLEARANCE } from '../../src/components/TabBar';
+import { useTabBarClearance } from '../../src/components/TabBar';
 import { Text } from '../../src/components/Text';
 import { usePlan } from '../../src/lib/store';
 import { watching } from '../../src/lib/types';
@@ -18,13 +18,14 @@ export default function Profile() {
   const { plan } = usePlan();
   const router = useRouter();
   const t = useTheme();
+  const clearance = useTabBarClearance();
   if (!plan) return null;
 
   const accepted = watching(plan).length;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }} edges={['top']}>
-      <ScrollView contentContainerStyle={{ paddingHorizontal: space(5), paddingBottom: TAB_BAR_CLEARANCE, gap: space(7) }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: space(5), paddingBottom: clearance, gap: space(7) }} showsVerticalScrollIndicator={false}>
         <View style={{ paddingTop: space(6), gap: space(1) }}>
           <Text variant="display">{plan.ownerName}</Text>
           {plan.email ? (

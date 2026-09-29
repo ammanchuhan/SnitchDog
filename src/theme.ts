@@ -102,11 +102,11 @@ export const font = {
 export const type = {
   // `hero` is the weigh-in number and nothing else — it stays sans so it keeps tabular figures
   // and does not shift width as it changes.
-  hero: { fontFamily: font.extrabold, fontSize: 60, letterSpacing: -2.5 },
-  display: { fontFamily: font.serifBold, fontSize: 38, letterSpacing: -0.6 },
-  title: { fontFamily: font.serifBold, fontSize: 26, letterSpacing: -0.3 },
+  hero: { fontFamily: font.extrabold, fontSize: 52, letterSpacing: -2 },
+  display: { fontFamily: font.serifBold, fontSize: 30, letterSpacing: -0.5 },
+  title: { fontFamily: font.serifBold, fontSize: 22, letterSpacing: -0.2 },
   // Sans: `heading` labels stat cards and numbers as often as it heads anything.
-  heading: { fontFamily: font.semibold, fontSize: 19, letterSpacing: -0.3 },
+  heading: { fontFamily: font.semibold, fontSize: 17, letterSpacing: -0.2 },
   body: { fontFamily: font.regular, fontSize: 16, lineHeight: 24 },
   bodyStrong: { fontFamily: font.semibold, fontSize: 16, lineHeight: 24 },
   small: { fontFamily: font.regular, fontSize: 14, lineHeight: 20 },
