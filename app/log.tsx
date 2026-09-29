@@ -5,7 +5,7 @@ import { Image, KeyboardAvoidingView, Platform, Pressable, View } from 'react-na
 import { Button } from '../src/components/Button';
 import { Field } from '../src/components/Field';
 import { Screen } from '../src/components/Screen';
-import { Snitch } from '../src/components/Snitch';
+import { Snitch, SnitchPortrait } from '../src/components/Snitch';
 import { Text } from '../src/components/Text';
 import { ApiError } from '../src/lib/api';
 import { checkJump, checkWeight, heightOf } from '../src/lib/limits';
@@ -117,7 +117,10 @@ export default function Log() {
             </View>
           ) : (
             <>
-              <Text variant="title">Weigh-in</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(3) }}>
+                <SnitchPortrait pose={phase.kind === 'failed' ? 'worried' : phase.kind === 'read' ? 'grin' : 'hello'} size={56} />
+                <Text variant="title">Weigh-in</Text>
+              </View>
 
               {phase.kind === 'start' && (
                 <Pressable

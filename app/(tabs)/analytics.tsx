@@ -5,7 +5,7 @@ import { Figure, Section } from '../../src/components/Figure';
 import { ListGroup, ListRow } from '../../src/components/List';
 import { MonthCalendar } from '../../src/components/MonthCalendar';
 import { Screen } from '../../src/components/Screen';
-import { Snitch } from '../../src/components/Snitch';
+import { SnitchPortrait } from '../../src/components/Snitch';
 import { Text } from '../../src/components/Text';
 import { WeightChart } from '../../src/components/WeightChart';
 import { usePlan } from '../../src/lib/store';
@@ -41,18 +41,18 @@ export default function Analytics() {
   // Snitch reacts to the history (ANA-7): a trophy flex after a clean run, a sly look when a
   // witness heard about the latest week.
   const lastClosed = history.weeks.filter((w) => !w.open).slice(-1)[0];
-  const mood = lastClosed && weeksTold(plan).includes(lastClosed.start) ? 'sly' : history.current >= 4 ? 'proud' : 'calm';
+  const pose = lastClosed && weeksTold(plan).includes(lastClosed.start) ? 'sly' : history.current >= 2 ? 'proud' : 'hello';
 
   return (
     <Screen edges={['top']}>
-      <View style={{ flexDirection: 'row', alignItems: 'flex-end', paddingTop: space(6), paddingBottom: space(8) }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(3), paddingTop: space(4), paddingBottom: space(6) }}>
         <View style={{ flex: 1, gap: space(2) }}>
           <Text variant="micro" tone="faint">
             ANALYTICS
           </Text>
           <Text variant="display">How it&rsquo;s gone</Text>
         </View>
-        <Snitch mood={mood} height={96} />
+        <SnitchPortrait pose={pose} size={72} />
       </View>
 
       <Section title="THE TREND" first>
