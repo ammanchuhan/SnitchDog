@@ -8,28 +8,35 @@ tells them.
 
 ## How it works
 
-1. **Sign up** in eight short screens: name, age, height, weight, target, and your witnesses.
+1. **Sign up** with Apple, Google or an email address, then answer Snitch one screen at a time:
+   name, age, height and weight, target, how Snitch should talk to you (gentle through drill
+   sergeant), and your witnesses.
 2. **Invite your witnesses.** Each gets a link that opens Telegram. No app, no account. Each is
    messaged on their own, and none is told who the others are.
 3. **Build the plan with Snitch** in the Coach tab: workouts a week, which days, a pin on your
    gym, and a daily step goal.
-4. **Weigh in three mornings a week.** Photograph the scale; the phone reads the number with
-   Apple's Vision framework and deletes the photo.
+4. **Weigh in three mornings a week.** Photograph the scale. The phone sends a downsized copy to
+   the server, where Claude reads the display and only the number comes back; offline, the phone
+   reads it itself with Apple's Vision. The photo is deleted from the phone either way.
 5. **Workouts are verified by GPS.** A geofence around the gym: stay 30 minutes and it counts.
 6. **Snitch snitches.** A week under three weigh-ins, or two workouts missed in a row, and every
-   witness gets a Telegram message. An honest miss with a good reason can get a pass (two a month).
+   witness gets a Telegram message. An honest miss with a good reason can get a hall pass from
+   Snitch (two a month). You hear from Snitch in the app and by push; witnesses only on Telegram.
 
-You can't leave quietly: removing a witness or deleting your account tells every witness, unless
-you reached your goal.
+You can't leave quietly: removing a witness or deleting your account tells the witnesses. If you
+reached your goal, what they hear is that you made it.
 
 ## Design decisions worth naming
 
 - **Witnesses see whether you showed up, and nothing else.** Never the number, the photos, your
   chats or your streak. Nothing you type is ever forwarded to them.
-- **Snitch never comments on the number.** It talks about showing up. Weight is never sent to the
-  model, and the numbers in a plan are computed in code; Snitch only explains them.
-- **Photos stay on the phone.** Scale photos are read and deleted; weekly mirror photos live only
-  in the app's storage.
+- **Snitch never comments on the number.** It talks about showing up. The coach sees how many
+  weigh-ins you've done, never what you weigh, and the numbers in a plan are computed in code;
+  Snitch only explains them.
+- **Scale photos aren't kept.** Reading one is a separate call that sees only the photo and returns
+  only the number; the image is never written to the database, to disk or to the logs, and the
+  phone deletes its copy. Weekly mirror photos never leave the phone: they live only in the app's
+  storage and are never sent to Snitch or to a model.
 - **The server is the source of truth.** The ladder has to run while the app is closed, so the
   plan lives on the server and the phone caches it (and queues a weigh-in taken offline).
 
@@ -42,7 +49,7 @@ doc; requirement ids (HOME-3, Q20…) in the code refer to it.
 app/          Expo Router: (tabs)/ home, analytics, coach, profile; profile/ drill-downs;
               signup, auth, reset, log (weigh-in), mirror, history, photos
 src/          Domain types, the API client and store, components (Snitch, the plan builder…)
-modules/      Local native modules: scale-reader (Vision OCR), health-steps (HealthKit)
+modules/      Local native modules: scale-reader (Vision OCR, the offline fallback), health-steps (HealthKit)
 plugins/      Config plugins (the iOS 27 scene life cycle)
 server/       Next.js on Vercel: the API, the ladder, the Telegram bot, the site
 e2e/          Maestro flows that go through every screen on the simulator
