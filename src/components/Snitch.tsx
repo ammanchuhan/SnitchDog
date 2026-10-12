@@ -14,6 +14,9 @@ const ART = {
   grin: require('../../assets/snitch/face-grin.png'),
   worried: require('../../assets/snitch/face-worried.png'),
   sly: require('../../assets/snitch/face-sly.png'),
+  bustFlex: require('../../assets/snitch/bust-flex.png'),
+  bustTurn: require('../../assets/snitch/bust-turn.png'),
+  bustStand: require('../../assets/snitch/bust-stand.png'),
 };
 
 /** Width over height of each cut, so a picture can be sized from its height alone. */
@@ -26,6 +29,9 @@ const ASPECT: Record<keyof typeof ART, number> = {
   grin: 74 / 96,
   worried: 141 / 96,
   sly: 81 / 96,
+  bustFlex: 201 / 140,
+  bustTurn: 137 / 140,
+  bustStand: 150 / 140,
 };
 
 export type SnitchMood =
@@ -113,6 +119,44 @@ export function SnitchAvatar({ size = 32, mood = 'happy', style }: { size?: numb
       }}
     >
       <Image source={ART[mood]} style={[{ height: size * 1.05, width: size * 1.05 * ASPECT[mood], marginBottom: -size * 0.12 }, style]} resizeMode="contain" />
+    </View>
+  );
+}
+
+export type PortraitPose = 'proud' | 'hello' | 'ready' | 'sly' | 'worried' | 'grin';
+
+const PORTRAIT: Record<PortraitPose, keyof typeof ART> = {
+  proud: 'bustFlex',
+  hello: 'bustTurn',
+  ready: 'bustStand',
+  sly: 'sly',
+  worried: 'worried',
+  grin: 'grin',
+};
+
+/** A close-up of Snitch in a soft rounded frame, cut at the shoulders like a portrait. Busts
+ *  sit on the frame's bottom edge; faces are centred a little lower so the ears have room. */
+export function SnitchPortrait({ pose, size = 88, label }: { pose: PortraitPose; size?: number; label?: string }) {
+  const t = useTheme();
+  const art = PORTRAIT[pose];
+  const bust = art.startsWith('bust');
+  const h = bust ? size * 0.92 : size * 0.8;
+  return (
+    <View
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel={label ?? LABEL[pose === 'proud' ? 'proud' : pose === 'hello' ? 'hello' : pose === 'ready' ? 'ready' : pose]}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size * 0.28,
+        backgroundColor: t.claySoft,
+        overflow: 'hidden',
+        alignItems: 'center',
+        justifyContent: bust ? 'flex-end' : 'center',
+      }}
+    >
+      <Image source={ART[art]} style={{ height: h, width: Math.min(h * ASPECT[art], size * 1.1), marginBottom: bust ? 0 : -size * 0.06 }} resizeMode="contain" />
     </View>
   );
 }

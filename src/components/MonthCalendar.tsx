@@ -10,7 +10,7 @@ const LABEL: Record<DayState, string> = {
   clean: 'kept',
   quiet: 'nothing owed',
   slipped: 'slipped',
-  called: 'witnesses were told',
+  called: 'snitched: witnesses were told',
   future: 'still to come',
   before: 'before the plan counted',
 };
@@ -122,7 +122,7 @@ export function MonthCalendar({ plan }: { plan: Plan }) {
         <Key color={t.good} label="Kept" />
         <Key color="transparent" label="Nothing owed" border={t.lineSoft} />
         <Key color={t.surfaceHigh} label="Slipped" border={t.textFaint} />
-        <Key color={t.ember} label="Witnesses were told" />
+        <Key color={t.ember} label="Snitched" />
       </View>
     </View>
   );

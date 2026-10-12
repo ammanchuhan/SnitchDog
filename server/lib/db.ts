@@ -43,7 +43,7 @@ export type RoutineSlot = { id: string; label: string; days: number[]; hour: num
 
 export type Gym = { name: string; lat: number; lng: number; radius: number };
 
-export type Style = 'gentle' | 'balanced' | 'tough';
+export type Style = 'gentle' | 'balanced' | 'tough' | 'drill';
 
 export type PlanRow = {
   id: string;

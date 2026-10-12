@@ -28,7 +28,9 @@ export default function Auth() {
   const [appleReady, setAppleReady] = useState(false);
 
   useEffect(() => {
-    // Simulators without an iCloud account, and every Android device, have no Apple button.
+    // Simulators without an iCloud account, and every Android device, have no Apple button. Builds
+    // signed without the Sign in with Apple capability (a free Personal Team) turn it off too.
+    if (process.env.EXPO_PUBLIC_APPLE_SIGN_IN === 'off') return;
     AppleAuthentication.isAvailableAsync().then(setAppleReady).catch(() => setAppleReady(false));
   }, []);
 

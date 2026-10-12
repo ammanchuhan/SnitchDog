@@ -10,10 +10,13 @@ export function Choice<K extends string>({
   options,
   value,
   onChange,
+  compact,
 }: {
   options: { key: K; label: string; note?: string }[];
   value?: K;
   onChange: (key: K) => void;
+  /** Less padding, for sign-up steps that must fit on one screen (SIGNUP-1). */
+  compact?: boolean;
 }) {
   const t = useTheme();
   return (
@@ -34,7 +37,7 @@ export function Choice<K extends string>({
               borderWidth: on ? 1.5 : 1,
               borderColor: on ? t.text : t.line,
               backgroundColor: on ? t.surface : 'transparent',
-              paddingVertical: space(4),
+              paddingVertical: compact ? space(2) + 2 : space(4),
               paddingHorizontal: space(4),
               gap: 2,
             }}

@@ -2,7 +2,7 @@ import { ScrollView, View, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { space, useTheme } from '../theme';
-import { TAB_BAR_CLEARANCE } from './TabBar';
+import { useTabBarClearance } from './TabBar';
 
 /** Every screen sits on the same paper with the same gutter. */
 export function Screen({
@@ -17,10 +17,11 @@ export function Screen({
   edges?: ('top' | 'bottom' | 'left' | 'right')[];
 }) {
   const t = useTheme();
-  const inner: ViewStyle = { paddingHorizontal: space(6), flexGrow: 1 };
+  const clearance = useTabBarClearance();
+  const inner: ViewStyle = { paddingHorizontal: space(5), flexGrow: 1 };
   // The tab bar floats over the page, so nothing reserves space for it: every scrolling screen
   // has to leave its full height clear itself, or the last card ends up under the glass.
-  const bottom = TAB_BAR_CLEARANCE;
+  const bottom = clearance;
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }} edges={edges}>
       {scroll ? (

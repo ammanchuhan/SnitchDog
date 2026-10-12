@@ -112,3 +112,7 @@ export const witnessInviteUrl = (token: string) =>
   BOT ? `${BOT}?start=w_${token}` : `https://snitchdog.com/w/${token}`;
 
 export const changePassword = (current: string, next: string) => call<{ ok: true }>('/api/auth/password', json('POST', { current, next }));
+
+/** The weight read off a scale photo by the server, or null when it couldn't read one. */
+export const readScalePhoto = (image: string) =>
+  call<{ value: number | null; reason?: string }>('/api/scale/read', json('POST', { image }));

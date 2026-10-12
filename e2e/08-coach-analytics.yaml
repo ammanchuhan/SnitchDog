@@ -41,7 +41,7 @@ appId: com.ammanchuhan.snitchdog
 - scrollUntilVisible:
     element: "MONTH BY MONTH"
 - scrollUntilVisible:
-    element: "Witnesses were told"
+    element: "Snitched"
     visibilityPercentage: 50
 - scrollUntilVisible:
     element: "Every weigh-in.*"
@@ -51,5 +51,5 @@ appId: com.ammanchuhan.snitchdog
 - assertVisible: "209.4 lb"
 - tapOn: "Back"
 - scrollUntilVisible:
-    element: "Your witnesses have been told"
+    element: "Snitch Count"
     visibilityPercentage: 50

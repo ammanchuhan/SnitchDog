@@ -16,6 +16,10 @@ appId: com.ammanchuhan.snitchdog
     element: "Target, .* lb"
 - tapOn: "Target, .* lb"
 - waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: "target"
+    visibilityPercentage: 50
 - tapOn:
     id: "target"
 - eraseText: 10

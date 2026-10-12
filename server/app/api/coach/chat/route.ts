@@ -35,8 +35,8 @@ Short by default: one to three sentences unless the question needs more.
 You can't log a weigh-in from a number typed here (it needs the photo) and you can't mark a
 workout done (the phone does that at the gym). Say so if asked.
 
-Passes: if they missed, or are about to miss, a week's weigh-ins or a workout for a genuinely good
-reason (illness, injury, a family emergency, travel they couldn't avoid), you can grant a pass with
+Hall passes: if they missed, or are about to miss, a week's weigh-ins or a workout for a genuinely good
+reason (illness, injury, a family emergency, travel they couldn't avoid), you can grant a hall pass with
 the grant_pass tool. Ask for the reason if they haven't given one. "I didn't feel like it", "I was
 busy" or "I forgot" are not good reasons: say no, kindly or bluntly per their style. At most
 ${PASSES_PER_MONTH} a month; the context says how many are left. For a longer break, point them
@@ -78,15 +78,15 @@ const TOOLS: Anthropic.Tool[] = [
 
 async function grantPass(p: PlanRow, today: string, input: Record<string, unknown>): Promise<string> {
   const passes = await getPasses(p.id);
-  if (passesLeft(passes, today) <= 0) return `No passes left this month (${PASSES_PER_MONTH} used).`;
+  if (passesLeft(passes, today) <= 0) return `No hall passes left this month (${PASSES_PER_MONTH} used).`;
   const reason = clip(input.reason).slice(0, 200);
 
   if (input.kind === 'week') {
     const ref = weekStart(input.which === 'last_week' ? shiftDate(today, -7) : today);
     if (p.escalated_weeks.includes(ref)) return 'That week has already been judged; too late for a pass.';
-    if (passes.some((x) => x.kind === 'week' && x.ref === ref)) return `That week already has a pass. ${passesLeft(passes, today)} left this month.`;
+    if (passes.some((x) => x.kind === 'week' && x.ref === ref)) return `That week already has a hall pass. ${passesLeft(passes, today)} left this month.`;
     await sql`insert into passes (plan_id, kind, ref, reason) values (${p.id}, 'week', ${ref}, ${reason}) on conflict do nothing`;
-    return `Pass granted for the week of ${ref}. ${passesLeft(passes, today) - 1} left this month.`;
+    return `Hall pass granted for the week of ${ref}. ${passesLeft(passes, today) - 1} left this month.`;
   }
 
   const date = input.which === 'yesterday' ? shiftDate(today, -1) : today;
@@ -99,14 +99,14 @@ async function grantPass(p: PlanRow, today: string, input: Record<string, unknow
   if (!slot) return `No workout to excuse ${input.which}.`;
   const row = sessions.find((r) => r.date === date && r.slot_id === slot.id);
   if (row?.escalated_at) return 'Witnesses were already told about that one; too late for a pass.';
-  if (row?.status === 'excused') return `That workout already has a pass. ${passesLeft(passes, today)} left this month.`;
+  if (row?.status === 'excused') return `That workout already has a hall pass. ${passesLeft(passes, today)} left this month.`;
   await sql`insert into passes (plan_id, kind, ref, reason) values (${p.id}, 'workout', ${`${date}:${slot.id}`}, ${reason}) on conflict do nothing`;
   await sql`
     insert into sessions (plan_id, date, slot_id, status, answered_at)
     values (${p.id}, ${date}, ${slot.id}, 'excused', now())
     on conflict (plan_id, date, slot_id) do update set status = 'excused', answered_at = now()
   `;
-  return `Pass granted for ${slot.label} on ${date}. ${passesLeft(passes, today) - 1} left this month.`;
+  return `Hall pass granted for ${slot.label} on ${date}. ${passesLeft(passes, today) - 1} left this month.`;
 }
 
 /** Recent chat, oldest first, including Snitch's own nudges. */
@@ -152,7 +152,7 @@ Weigh-ins this week: ${week.done} of ${week.required}${week.counting ? '' : ' (n
 Workouts: ${plan.routine.map((s) => `${s.label} by ${s.hour}:00 on days ${s.days.join(',')}`).join('; ') || 'no plan yet'}${plan.gym ? ` at ${plan.gym.name}` : ''}.
 Workouts missed in the last two weeks: ${sessions.filter((s) => s.status === 'missed' && s.date >= shiftDate(date, -14)).length}.
 Witnesses watching: ${watching.join(', ') || 'none yet'}.
-Passes left this month: ${passesLeft(passes, date)}.
+Hall passes left this month: ${passesLeft(passes, date)}.
 
 What you remember about ${plan.owner_name}:
 ${memories.map((m) => `- ${m.fact}`).join('\n') || '- nothing yet'}`;
@@ -181,14 +181,14 @@ ${memories.map((m) => `- ${m.fact}`).join('\n') || '- nothing yet'}`;
       if (block.type !== 'tool_use') continue;
       if (block.name === 'grant_pass') {
         const out = await grantPass(plan, date, block.input as Record<string, unknown>);
-        changed ||= out.startsWith('Pass granted');
+        changed ||= out.startsWith('Hall pass granted');
         results.push({ type: 'tool_result', tool_use_id: block.id, content: out });
       } else {
         results.push({ type: 'tool_result', tool_use_id: block.id, content: 'not possible', is_error: true });
       }
     }
     // Granting costs nothing; only the follow-up reply is budgeted.
-    if (!(await allow(plan.id))) return reply(changed ? 'Done. You have your pass.' : 'Say that again?', changed);
+    if (!(await allow(plan.id))) return reply(changed ? 'Done. You have your hall pass.' : 'Say that again?', changed);
     res = await anthropic.messages.create({
       model: MODEL,
       max_tokens: 400,

@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bubble } from '../../src/components/Bubble';
 import { PlanBuilder } from '../../src/components/PlanBuilder';
 import { SnitchAvatar } from '../../src/components/Snitch';
-import { TAB_BAR_CLEARANCE } from '../../src/components/TabBar';
+import { useTabBarClearance } from '../../src/components/TabBar';
 import { Text } from '../../src/components/Text';
 import { ApiError, askCoach, type ChatMessage, fetchChat, patchPlan } from '../../src/lib/api';
 import { usePlan } from '../../src/lib/store';
@@ -18,6 +18,7 @@ import { font, radius, space, useTheme } from '../../src/theme';
 export default function Coach() {
   const { plan, refresh, run } = usePlan();
   const t = useTheme();
+  const clearance = useTabBarClearance();
   const router = useRouter();
   const params = useLocalSearchParams<{ build?: string }>();
   const scroller = useRef<ScrollView>(null);
@@ -99,7 +100,7 @@ export default function Coach() {
 
         <ScrollView
           ref={scroller}
-          contentContainerStyle={{ padding: space(5), gap: space(4), paddingBottom: building ? TAB_BAR_CLEARANCE : space(5) }}
+          contentContainerStyle={{ padding: space(5), gap: space(4), paddingBottom: building ? clearance : space(5) }}
           onContentSizeChange={() => scroller.current?.scrollToEnd({ animated: true })}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
@@ -138,7 +139,7 @@ export default function Coach() {
               paddingTop: space(3),
               // The composer is pinned to the bottom, so it is what has to clear the floating pill;
               // with the keyboard up the pill is hidden behind it.
-              paddingBottom: keyboard ? space(3) : TAB_BAR_CLEARANCE,
+              paddingBottom: keyboard ? space(3) : clearance,
               borderTopWidth: 1,
               borderTopColor: t.lineSoft,
             }}

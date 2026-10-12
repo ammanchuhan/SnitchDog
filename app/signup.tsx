@@ -4,6 +4,7 @@ import { Keyboard, KeyboardAvoidingView, Platform, Pressable, View } from 'react
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '../src/components/Button';
+import { Choice } from '../src/components/Choice';
 import { Field } from '../src/components/Field';
 import { HeightField } from '../src/components/HeightField';
 import { Snitch, SnitchMood } from '../src/components/Snitch';
@@ -14,12 +15,14 @@ import { ApiError } from '../src/lib/api';
 import { checkTarget, checkWeight, floorLine, heightOf, suggestTarget, targetReaction } from '../src/lib/limits';
 import { loadToken, signOut } from '../src/lib/session';
 import { usePlan } from '../src/lib/store';
-import type { Gender, HeightUnit, Unit } from '../src/lib/types';
+import { STYLES } from '../src/lib/styles';
+import type { Gender, HeightUnit, Style, Unit } from '../src/lib/types';
 import { WEIGH_INS_PER_WEEK } from '../src/lib/types';
 import { radius, space, useTheme } from '../src/theme';
 
-/** Eight steps (Q6). The explainers ('hello', 'how', 'data') ask nothing. */
-const STEPS = ['hello', 'how', 'name', 'age', 'body', 'target', 'data', 'witnesses'] as const;
+/** The steps (Q6, plus choosing how Snitch talks to you). The explainers ('hello', 'how',
+ *  'data') ask nothing. */
+const STEPS = ['hello', 'how', 'name', 'age', 'body', 'target', 'data', 'style', 'witnesses'] as const;
 type Step = (typeof STEPS)[number];
 
 const GENDERS: { key: Gender; label: string }[] = [
@@ -30,6 +33,13 @@ const GENDERS: { key: Gender; label: string }[] = [
 ];
 
 const MAX_WITNESSES = 3;
+
+const STYLE_REPLY: Record<Style, string> = {
+  gentle: 'Gentle it is. I’ll go easy on you, not on your witnesses.',
+  balanced: 'Balanced. Straight with you, never mean.',
+  tough: 'Tough love. You asked for it.',
+  drill: 'Drill Sergeant. Don’t say I didn’t warn you.',
+};
 
 /** Sign-up: Snitch asks, you answer, one thing a screen (section 3).
  *
@@ -50,6 +60,7 @@ export default function SignUp() {
   const [startValue, setStartValue] = useState('');
   const [gender, setGender] = useState<Gender>();
   const [targetValue, setTargetValue] = useState('');
+  const [style, setStyle] = useState<Style>();
   const [witnesses, setWitnesses] = useState<string[]>(['']);
   const [keyboard, setKeyboard] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -94,6 +105,7 @@ export default function SignUp() {
     body: !!height && startNum > 0 && !startProblem,
     target: targetNum > 0 && !targetProblem,
     data: true,
+    style: !!style,
     witnesses: named.length >= 1,
   };
 
@@ -134,6 +146,9 @@ export default function SignUp() {
           ],
           mood: 'calm',
         };
+      case 'style':
+        if (style) return { lines: [STYLE_REPLY[style]], mood: style === 'drill' || style === 'tough' ? 'sly' : 'grin' };
+        return { lines: ['How do you want me to talk to you?', 'Change it any time in Profile.'], mood: 'ready' };
       case 'witnesses':
         return {
           lines: [
@@ -158,6 +173,7 @@ export default function SignUp() {
         unit,
         start: startNum,
         target: targetNum,
+        style: style ?? 'balanced',
         witnessNames: named,
       });
       router.replace('/home');
@@ -251,6 +267,8 @@ export default function SignUp() {
             ) : null}
           </View>
         );
+      case 'style':
+        return <Choice compact value={style} onChange={setStyle} options={STYLES.map((x) => ({ key: x.key, label: x.label, note: x.sample }))} />;
       case 'witnesses':
         return (
           <View style={{ gap: space(3) }}>
@@ -288,7 +306,7 @@ export default function SignUp() {
   const explainer = current === 'hello' || current === 'how' || current === 'data';
   // With the keyboard up Snitch hides; the body and witness steps have the most controls, so
   // Snitch is smaller there.
-  const snitchHeight = explainer ? 220 : current === 'body' || current === 'witnesses' ? 96 : 150;
+  const snitchHeight = explainer ? 220 : current === 'body' || current === 'witnesses' || current === 'style' ? 84 : 150;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }} edges={['top', 'bottom']}>

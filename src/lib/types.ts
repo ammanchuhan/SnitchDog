@@ -22,7 +22,7 @@ export const WEIGH_INS_PER_WEEK = 3;
 export type Unit = 'lb' | 'kg';
 export type HeightUnit = 'ft' | 'cm';
 export type Gender = 'woman' | 'man' | 'non_binary' | 'prefer_not';
-export type Style = 'gentle' | 'balanced' | 'tough';
+export type Style = 'gentle' | 'balanced' | 'tough' | 'drill';
 
 export type Goal = { unit: Unit; start: number; target: number; perWeek: number };
 
@@ -125,6 +125,7 @@ export type NewPlan = {
   unit: Unit;
   start: number;
   target: number;
+  style: Style;
   witnessNames: string[];
 };
 
